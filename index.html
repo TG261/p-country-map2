@@ -47,7 +47,8 @@
             margin: 0 auto;
             border: 4px solid #555;
             overflow: hidden;
-            background-size: cover;
+            background-size: 100% 100%; /* Растягиваем карту ровно по размеру квадрата */
+            background-repeat: no-repeat;
             background-position: center;
         }
         .token {
@@ -94,7 +95,6 @@
         <button class="btn-tank" onclick="createToken('tank')">+ Танк</button>
         <button class="btn-air" onclick="createToken('air')">+ Авиация</button>
         
-        <!-- Кнопка загрузки карты -->
         <label class="file-input-label">
             🗺️ Загрузить карту
             <input type="file" id="map-uploader" accept="image/*" style="display: none;" onchange="uploadMap(this)">
@@ -108,19 +108,23 @@
         const socket = io();
         const container = document.getElementById('map-container');
 
-        // Получение начального состояния (фишки и карта)
         socket.on('init-tokens', (tokens) => {
+            // Очищаем только фишки, не трогая фон
+            const currentBg = container.style.backgroundImage;
             container.innerHTML = '';
+            container.style.backgroundImage = currentBg;
+            
             for (let id in tokens) {
                 renderToken(tokens[id]);
             }
         });
 
+        // Слушаем, если КТО-ТО ДРУГОЙ сменил карту
         socket.on('update-map', (mapDataUrl) => {
-            container.style.backgroundImage = `url(${mapDataUrl})`;
+            container.style.backgroundImage = `url("${mapDataUrl}")`;
         });
 
-        // Функция отправки картинки карты всем игрокам
+        // Функция загрузки карты
         function uploadMap(input) {
             const file = input.files[0];
             if (!file) return;
@@ -128,8 +132,10 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 const base64Image = e.target.result;
-                container.style.backgroundImage = `url(${base64Image})`;
-                socket.emit('change-map', base64Image); // Отправляем на сервер
+                // Меняем карту у себя ЖЕСТКО и мгновенно
+                container.style.backgroundImage = `url("${base64Image}")`;
+                // Пересылаем её другу
+                socket.emit('change-map', base64Image);
             };
             reader.readAsDataURL(file);
         }
@@ -151,12 +157,10 @@
             el.style.top = tokenData.top + 'px';
             el.style.left = tokenData.left + 'px';
 
-            // Иконки для фишек
             if(tokenData.type === 'inf') el.innerText = '🎖️';
             if(tokenData.type === 'tank') el.innerText = '🚜';
             if(tokenData.type === 'air') el.innerText = '✈️';
 
-            // Кнопка удаления
             const del = document.createElement('div');
             del.className = 'delete-btn';
             del.innerText = 'X';
@@ -166,7 +170,6 @@
             };
             el.appendChild(del);
 
-            // Логика перетаскивания (Drag and Drop)
             el.onmousedown = function(e) {
                 e.preventDefault();
                 let shiftX = e.clientX - el.getBoundingClientRect().left;
@@ -177,7 +180,6 @@
                     let newLeft = clientX - containerRect.left - shiftX;
                     let newTop = clientY - containerRect.top - shiftY;
 
-                    // Ограничиваем фишку рамками карты
                     newLeft = Math.max(0, Math.min(newLeft, containerRect.width - 40));
                     newTop = Math.max(0, Math.min(newTop, containerRect.height - 40));
 

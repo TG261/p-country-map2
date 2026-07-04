@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Штаб RP</title>
+    <title>Мультиплеерный Штаб RP</title>
     <style>
         body { font-family: Arial, sans-serif; background: #222; color: #fff; text-align: center; margin: 0; padding: 20px; }
         .controls { margin: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; align-items: center; }
@@ -10,23 +10,8 @@
         .btn-inf { background: #4CAF50; color: white; }
         .btn-tank { background: #2196F3; color: white; }
         .btn-air { background: #FFC107; color: black; }
-        .btn-share { background: #e91e63; color: white; }
-        .file-input-label {
-            background: #9c27b0;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .url-input {
-            padding: 9px;
-            border-radius: 5px;
-            border: 1px solid #555;
-            background: #333;
-            color: #fff;
-            width: 200px;
-        }
+        .url-input { padding: 9px; border-radius: 5px; border: 1px solid #555; background: #333; color: #fff; width: 250px; }
+        .file-input-label { background: #9c27b0; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         #map-container {
             position: relative;
             width: 1000px;
@@ -50,6 +35,7 @@
             cursor: move;
             user-select: none;
             font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
         }
         .token-inf { background: #4CAF50; }
         .token-tank { background: #2196F3; }
@@ -73,100 +59,105 @@
 </head>
 <body>
 
-    <h1>Штаб RP</h1>
+    <h1>Мультиплеерный Штаб RP</h1>
+    <p>Все изменения карты и фишек видны обоим игрокам в реальном времени!</p>
     
     <div class="controls">
         <button class="btn-inf" onclick="addToken('INF')">+ Пехота</button>
         <button class="btn-tank" onclick="addToken('TNK')">+ Танк</button>
         <button class="btn-air" onclick="addToken('AIR')">+ Авиация</button>
         
-        <!-- Загрузка с ПК -->
         <label class="file-input-label">
-            🗺️ Загрузить файл карты
+            🗺️ Загрузить файл
             <input type="file" accept="image/*" style="display: none;" onchange="loadMapFromFile(this)">
         </label>
 
-        <!-- Ввод ссылки на карту из интернета -->
-        <input type="text" id="map-url-field" class="url-input" placeholder="Или вставь URL карты..." oninput="loadMapFromUrl(this.value)">
-
-        <button class="btn-share" onclick="copyShareLink()">🔗 Ссылка для друга</button>
+        <input type="text" id="map-url-field" class="url-input" placeholder="Или вставь URL карты для всех..." oninput="sendMapUrl(this.value)">
     </div>
 
     <div id="map-container"></div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // Твоя конфигурация из Firebase со скриншота image_a07b83.jpg
+        const firebaseConfig = {
+            apiKey: "AIzaSyCwSFk9zwr-qldxlVRrjyJNXNz9TJ0_LgA",
+            authDomain: "rp-map-218d5.firebaseapp.com",
+            databaseURL: "https://rp-map-218d5-default-rtdb.firebaseio.com",
+            projectId: "rp-map-218d5",
+            storageBucket: "rp-map-218d5.appspot.com",
+            messagingSenderId: "786305486724",
+            appId: "1:786305486724:web:fbc318ab0864fa821897d1",
+            measurementId: "G-VM0FCZX9D8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
         const map = document.getElementById('map-container');
         const urlField = document.getElementById('map-url-field');
-        let tokensData = [];
-        let globalMapUrl = "";
 
-        // Восстановление состояния при открытии ссылки
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const tokensParam = urlParams.get('tokens');
-            const mapParam = urlParams.get('mapUrl');
-            
-            if (mapParam) {
-                globalMapUrl = decodeURIComponent(mapParam);
-                urlField.value = globalMapUrl;
-                map.style.backgroundImage = `url("${globalMapUrl}")`;
+        // Слушаем изменения карты в реальном времени
+        onValue(ref(db, 'currentMap'), (snapshot) => {
+            const mapData = snapshot.val();
+            if (mapData) {
+                map.style.backgroundImage = `url("${mapData}")`;
+                if(mapData.startsWith('http')) {
+                    urlField.value = mapData;
+                }
+            } else {
+                map.style.backgroundImage = 'none';
             }
+        });
 
-            if (tokensParam) {
-                try {
-                    const decodedTokens = JSON.parse(decodeURIComponent(escape(atob(tokensParam))));
-                    decodedTokens.forEach(t => {
-                        createTokenElement(t.type, t.top, t.left);
-                    });
-                } catch (e) {
-                    console.error("Ошибка разбора фишек:", e);
+        // Слушаем изменения фишек в реальном времени
+        onValue(ref(db, 'tokens'), (snapshot) => {
+            document.querySelectorAll('.token').forEach(el => el.remove());
+            const tokens = snapshot.val();
+            if (tokens) {
+                for (let id in tokens) {
+                    renderTokenElement(id, tokens[id]);
                 }
             }
-        };
-        
-        // 1. Способ загрузки: Файл с ПК
-        function loadMapFromFile(input) {
+        });
+
+        window.loadMapFromFile = function(input) {
             const file = input.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
-                map.style.backgroundImage = "url('" + e.target.result + "')";
-                globalMapUrl = ""; 
-                urlField.value = ""; // Очищаем поле ввода ссылки
+                set(ref(db, 'currentMap'), e.target.result);
             };
             reader.readAsDataURL(file);
         }
 
-        // 2. Способ загрузки: Сетевая ссылка
-        function loadMapFromUrl(url) {
-            if (url.trim() !== "") {
-                globalMapUrl = url.trim();
-                map.style.backgroundImage = `url("${globalMapUrl}")`;
-            }
+        window.sendMapUrl = function(url) {
+            set(ref(db, 'currentMap'), url.trim());
         }
 
-        function addToken(type) {
-            createTokenElement(type, '50px', '50px');
-        }
-
-        function createTokenElement(type, initialTop, initialLeft) {
-            const token = document.createElement('div');
+        window.addToken = function(type) {
             const tokenId = 'token_' + Math.random().toString(36).substr(2, 9);
-            token.className = 'token token-' + type.toLowerCase();
-            token.innerText = type;
-            token.style.top = initialTop;
-            token.style.left = initialLeft;
-            token.setAttribute('data-id', tokenId);
+            set(ref(db, 'tokens/' + tokenId), {
+                type: type,
+                top: 50,
+                left: 50
+            });
+        }
 
-            tokensData.push({ id: tokenId, type: type, top: initialTop, left: initialLeft });
+        function renderTokenElement(id, data) {
+            const token = document.createElement('div');
+            token.className = 'token token-' + data.type.toLowerCase();
+            token.innerText = data.type;
+            token.style.top = data.top + 'px';
+            token.style.left = data.left + 'px';
 
             const del = document.createElement('div');
             del.className = 'delete-btn';
             del.innerText = 'X';
             del.onclick = function(e) {
                 e.stopPropagation();
-                tokensData = tokensData.filter(t => t.id !== tokenId);
-                token.remove();
+                remove(ref(db, 'tokens/' + id));
             };
             token.appendChild(del);
 
@@ -186,11 +177,10 @@
                     token.style.left = left + 'px';
                     token.style.top = top + 'px';
 
-                    const found = tokensData.find(t => t.id === tokenId);
-                    if (found) {
-                        found.left = left + 'px';
-                        found.top = top + 'px';
-                    }
+                    update(ref(db, 'tokens/' + id), {
+                        left: left,
+                        top: top
+                    });
                 }
 
                 function onMouseMove(e) { moveAt(e.clientX, e.clientY); }
@@ -203,32 +193,6 @@
             };
 
             map.appendChild(token);
-        }
-
-        function copyShareLink() {
-            if (tokensData.length === 0) {
-                alert('Добавьте хотя бы одну фишку на карту перед тем, как делиться ссылкой.');
-                return;
-            }
-            try {
-                const jsonString = unescape(encodeURIComponent(JSON.stringify(tokensData)));
-                const base64Tokens = btoa(jsonString);
-                
-                let queryParams = '?tokens=' + base64Tokens;
-                if (globalMapUrl) {
-                    queryParams += '&mapUrl=' + encodeURIComponent(globalMapUrl);
-                }
-
-                const shareUrl = window.location.origin + window.location.pathname + queryParams;
-                
-                navigator.clipboard.writeText(shareUrl).then(() => {
-                    alert('Ссылка скопирована! Если использовалась интернет-ссылка на карту, друг сразу увидит и карту, и фишки.');
-                }).catch(err => {
-                    prompt('Скопируй эту ссылку вручную:', shareUrl);
-                });
-            } catch(e) {
-                alert('Не удалось сгенерировать ссылку.');
-            }
         }
     </script>
 </body>

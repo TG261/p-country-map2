@@ -47,7 +47,7 @@
             margin: 0 auto;
             border: 4px solid #555;
             overflow: hidden;
-            background-size: 100% 100%; /* Растягиваем карту ровно по размеру квадрата */
+            background-size: 100% 100%;
             background-repeat: no-repeat;
             background-position: center;
         }
@@ -103,13 +103,20 @@
 
     <div id="map-container"></div>
 
-    <script src="/socket.io/socket.io.js"></script>
+    <!-- Подключаем сокеты через CDN, чтобы Vercel их не терял -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
-        const socket = io();
+        // Сначала находим контейнер, чтобы избежать ошибок с инициализацией
         const container = document.getElementById('map-container');
+        
+        // Проверяем, загрузилась ли библиотека сокетов
+        const socket = (typeof io !== 'undefined') ? io() : { on: () => {}, emit: () => {} };
+
+        if (typeof io === 'undefined') {
+            console.error("Критическая ошибка: Не удалось загрузить Socket.io с CDN.");
+        }
 
         socket.on('init-tokens', (tokens) => {
-            // Очищаем только фишки, не трогая фон
             const currentBg = container.style.backgroundImage;
             container.innerHTML = '';
             container.style.backgroundImage = currentBg;
@@ -119,22 +126,18 @@
             }
         });
 
-        // Слушаем, если КТО-ТО ДРУГОЙ сменил карту
         socket.on('update-map', (mapDataUrl) => {
-            container.style.backgroundImage = `url("${mapDataUrl}")`;
+            if (container) container.style.backgroundImage = `url("${mapDataUrl}")`;
         });
 
-        // Функция загрузки карты
         function uploadMap(input) {
             const file = input.files[0];
-            if (!file) return;
+            if (!file || !container) return;
 
             const reader = new FileReader();
             reader.onload = function(e) {
                 const base64Image = e.target.result;
-                // Меняем карту у себя ЖЕСТКО и мгновенно
                 container.style.backgroundImage = `url("${base64Image}")`;
-                // Пересылаем её другу
                 socket.emit('change-map', base64Image);
             };
             reader.readAsDataURL(file);

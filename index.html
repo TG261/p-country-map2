@@ -11,6 +11,14 @@
         .btn-tank { background: #2196F3; color: white; }
         .btn-air { background: #FFC107; color: black; }
         .btn-share { background: #e91e63; color: white; }
+        .file-input-label {
+            background: #9c27b0;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
         #map-container {
             position: relative;
             width: 1000px;
@@ -63,6 +71,13 @@
         <button class="btn-inf" onclick="addToken('INF')">+ Пехота</button>
         <button class="btn-tank" onclick="addToken('TNK')">+ Танк</button>
         <button class="btn-air" onclick="addToken('AIR')">+ Авиация</button>
+        
+        <!-- Снова возвращаем локальную загрузку карты -->
+        <label class="file-input-label">
+            🗺️ Загрузить карту
+            <input type="file" accept="image/*" style="display: none;" onchange="loadMap(this)">
+        </label>
+
         <button class="btn-share" onclick="copyShareLink()">🔗 Ссылка для друга</button>
     </div>
 
@@ -71,21 +86,22 @@
     <script>
         const map = document.getElementById('map-container');
         let tokensData = [];
+        let externalMapUrl = ""; // Храним сетевую ссылку на карту, если она есть
 
-        // === 🗺️ СЮДА ВСТАВЬ ПРЯМУЮ ССЫЛКУ НА СВОЮ КАРТУ ===
-        const MAP_URL = "https://i.imgur.com/ТВОЯ_КАРТА.png"; 
-        
-        // Устанавливаем карту по умолчанию сразу при загрузке
-        map.style.backgroundImage = `url("${MAP_URL}")`;
-
-        // Проверяем фишки в ссылке при открытии
+        // Проверяем фишки и карту в ссылке при открытии
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const tokensParam = urlParams.get('tokens');
+            const mapParam = urlParams.get('mapUrl');
             
+            // Если в ссылке была сетевая карта — загружаем её другу
+            if (mapParam) {
+                externalMapUrl = decodeURIComponent(mapParam);
+                map.style.backgroundImage = `url("${externalMapUrl}")`;
+            }
+
             if (tokensParam) {
                 try {
-                    // Декодируем только фишки (ссылка короткая и стабильная)
                     const decodedTokens = JSON.parse(decodeURIComponent(escape(atob(tokensParam))));
                     decodedTokens.forEach(t => {
                         createTokenElement(t.type, t.top, t.left);
@@ -95,6 +111,18 @@
                 }
             }
         };
+        
+        // Локальная загрузка картинки (работает мгновенно у тебя на компе)
+        function loadMap(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                map.style.backgroundImage = "url('" + e.target.result + "')";
+                externalMapUrl = ""; // Сбрасываем сетевую ссылку, так как загружен локальный файл
+            };
+            reader.readAsDataURL(file);
+        }
 
         function addToken(type) {
             createTokenElement(type, '50px', '50px');
@@ -156,18 +184,30 @@
             map.appendChild(token);
         }
 
+        // Умная генерация ссылки
         function copyShareLink() {
-            if (tokensData.length === 0) {
-                alert('Сначала добавьте хотя бы одну фишку на карту!');
-                return;
-            }
             try {
+                // Если карта загружена с компа, вежливо просим её интернет-ссылку
+                if (!externalMapUrl) {
+                    const userUrl = prompt("Ты загрузил карту с компьютера. Чтобы она отобразилась и у друга, вставь прямую интернет-ссылку на эту картинку (или оставь пустой, тогда загрузятся только фишки):", "");
+                    if (userUrl) {
+                        externalMapUrl = userUrl.trim();
+                    }
+                }
+
                 const jsonString = unescape(encodeURIComponent(JSON.stringify(tokensData)));
                 const base64Tokens = btoa(jsonString);
-                const shareUrl = window.location.origin + window.location.pathname + '?tokens=' + base64Tokens;
+                
+                // Собираем параметры (фишки + ссылка на карту, если она есть)
+                let queryParams = '?tokens=' + base64Tokens;
+                if (externalMapUrl) {
+                    queryParams += '&mapUrl=' + encodeURIComponent(externalMapUrl);
+                }
+
+                const shareUrl = window.location.origin + window.location.pathname + queryParams;
                 
                 navigator.clipboard.writeText(shareUrl).then(() => {
-                    alert('Ссылка скопирована! Ссылка короткая и откроется у друга без ошибок.');
+                    alert('Ссылка успешно скопирована! Отправь её другу.');
                 }).catch(err => {
                     prompt('Скопируй эту ссылку вручную:', shareUrl);
                 });

@@ -2,43 +2,15 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Штаб RP</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #222;
-            color: #fff;
-            text-align: center;
-            margin: 0;
-            padding: 20px;
-        }
-        .controls {
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        button {
-            padding: 10px 15px;
-            font-weight: bold;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+        body { font-family: Arial, sans-serif; background: #222; color: #fff; text-align: center; }
+        .controls { margin: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; align-items: center; }
+        button { padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; }
         .btn-inf { background: #4CAF50; color: white; }
         .btn-tank { background: #2196F3; color: white; }
         .btn-air { background: #FFC107; color: black; }
-        .file-input-label {
-            background: #9c27b0;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        .btn-share { background: #e91e63; color: white; }
         #map-container {
             position: relative;
             width: 1000px;
@@ -46,23 +18,21 @@
             background: #444;
             margin: 0 auto;
             border: 4px solid #555;
-            overflow: hidden;
             background-size: 100% 100%;
             background-repeat: no-repeat;
-            background-position: center;
         }
         .token {
             position: absolute;
             width: 40px;
             height: 40px;
             border-radius: 50%;
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 12px;
             cursor: move;
             user-select: none;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
             font-weight: bold;
         }
         .token-inf { background: #4CAF50; }
@@ -75,111 +45,126 @@
             background: red;
             color: white;
             border-radius: 50%;
-            width: 15px;
-            height: 15px;
+            width: 16px;
+            height: 16px;
             font-size: 10px;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
     <h1>Штаб RP</h1>
-    <p>Создавайте фишки, двигайте их по карте и управляйте своими армиями!</p>
-
+    
     <div class="controls">
-        <button class="btn-inf" onclick="createToken('inf')">+ Пехота</button>
-        <button class="btn-tank" onclick="createToken('tank')">+ Танк</button>
-        <button class="btn-air" onclick="createToken('air')">+ Авиация</button>
-        
-        <label class="file-input-label">
-            🗺️ Загрузить карту
-            <input type="file" id="map-uploader" accept="image/*" style="display: none;" onchange="uploadMap(this)">
-        </label>
+        <button class="btn-inf" onclick="addToken('INF')">+ Пехота</button>
+        <button class="btn-tank" onclick="addToken('TNK')">+ Танк</button>
+        <button class="btn-air" onclick="addToken('AIR')">+ Авиация</button>
+        <input type="file" accept="image/*" onchange="loadMap(this)">
+        <button class="btn-share" onclick="copyShareLink()">🔗 Ссылка для друга</button>
     </div>
 
     <div id="map-container"></div>
 
     <script>
-        const container = document.getElementById('map-container');
-        let tokens = JSON.parse(localStorage.getItem('rp_tokens')) || {};
+        const map = document.getElementById('map-container');
+        let tokensData = []; // Храним массив данных о фишках для генерации ссылки
+        let currentMapBase64 = "";
 
-        // Загрузка карты из памяти при старте страницы
-        const savedMap = localStorage.getItem('rp_map');
-        if (savedMap) {
-            container.style.backgroundImage = `url("${savedMap}")`;
-        }
-
-        // Отрисовка сохраненных фишек при старте
-        for (let id in tokens) {
-            renderToken(tokens[id]);
-        }
-
-        function uploadMap(input) {
+        // Проверяем, есть ли данные в ссылке при открытии сайта
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const stateParam = urlParams.get('state');
+            
+            if (stateParam) {
+                try {
+                    const decodedData = JSON.parse(decodeURIComponent(escape(atob(stateParam))));
+                    
+                    // Восстанавливаем карту
+                    if (decodedData.map) {
+                        currentMapBase64 = decodedData.map;
+                        map.style.backgroundImage = "url('" + currentMapBase64 + "')";
+                    }
+                    
+                    // Восстанавливаем фишки
+                    if (decodedData.tokens) {
+                        decodedData.tokens.forEach(t => {
+                            createTokenElement(t.type, t.top, t.left);
+                        });
+                    }
+                } catch (e) {
+                    console.error("Ошибка чтения ссылки:", e);
+                }
+            }
+        };
+        
+        // Загрузка карты
+        function loadMap(input) {
             const file = input.files[0];
-            if (!file || !container) return;
-
+            if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
-                const base64Image = e.target.result;
-                container.style.backgroundImage = `url("${base64Image}")`;
-                localStorage.setItem('rp_map', base64Image); // Сохраняем карту в браузере
+                currentMapBase64 = e.target.result;
+                map.style.backgroundImage = "url('" + currentMapBase64 + "')";
             };
             reader.readAsDataURL(file);
         }
 
-        function createToken(type) {
-            const id = 'token_' + Math.random().toString(36).substr(2, 9);
-            const tokenData = { id, type, top: 50, left: 50 };
-            tokens[id] = tokenData;
-            saveTokens();
-            renderToken(tokenData);
+        // Логика добавления фишки кнопкой
+        function addToken(type) {
+            createTokenElement(type, '50px', '50px');
         }
 
-        function renderToken(tokenData) {
-            const el = document.createElement('div');
-            el.id = tokenData.id;
-            el.className = `token token-${tokenData.type}`;
-            el.style.top = tokenData.top + 'px';
-            el.style.left = tokenData.left + 'px';
+        // Создание элемента фишки на поле
+        function createTokenElement(type, initialTop, initialLeft) {
+            const token = document.createElement('div');
+            const tokenId = 'token_' + Math.random().toString(36).substr(2, 9);
+            token.className = 'token token-' + type.toLowerCase();
+            token.innerText = type;
+            token.style.top = initialTop;
+            token.style.left = initialLeft;
+            token.dataset.id = tokenId;
 
-            if(tokenData.type === 'inf') el.innerText = '🎖️';
-            if(tokenData.type === 'tank') el.innerText = '🚜';
-            if(tokenData.type === 'air') el.innerText = '✈️';
+            // Запоминаем в наш массив данных
+            tokensData.push({ id: tokenId, type: type, top: initialTop, left: initialLeft });
 
+            // Кнопка удаления
             const del = document.createElement('div');
             del.className = 'delete-btn';
             del.innerText = 'X';
-            del.onclick = (e) => {
+            del.onclick = function(e) {
                 e.stopPropagation();
-                el.remove();
-                delete tokens[tokenData.id];
-                saveTokens();
+                tokensData = tokensData.filter(t => t.id !== tokenId);
+                token.remove();
             };
-            el.appendChild(del);
+            token.appendChild(del);
 
-            el.onmousedown = function(e) {
+            // Перетаскивание
+            token.onmousedown = function(e) {
                 e.preventDefault();
-                let shiftX = e.clientX - el.getBoundingClientRect().left;
-                let shiftY = e.clientY - el.getBoundingClientRect().top;
+                let shiftX = e.clientX - token.getBoundingClientRect().left;
+                let shiftY = e.clientY - token.getBoundingClientRect().top;
 
                 function moveAt(clientX, clientY) {
-                    let containerRect = container.getBoundingClientRect();
-                    let newLeft = clientX - containerRect.left - shiftX;
-                    let newTop = clientY - containerRect.top - shiftY;
+                    let rect = map.getBoundingClientRect();
+                    let left = clientX - rect.left - shiftX;
+                    let top = clientY - rect.top - shiftY;
 
-                    newLeft = Math.max(0, Math.min(newLeft, containerRect.width - 40));
-                    newTop = Math.max(0, Math.min(newTop, containerRect.height - 40));
+                    left = Math.max(0, Math.min(left, rect.width - 40));
+                    top = Math.max(0, Math.min(top, rect.height - 40));
 
-                    el.style.left = newLeft + 'px';
-                    el.style.top = newTop + 'px';
+                    token.style.left = left + 'px';
+                    token.style.top = top + 'px';
 
-                    tokens[tokenData.id].left = newLeft;
-                    tokens[tokenData.id].top = newTop;
-                    saveTokens();
+                    // Обновляем координаты в массиве
+                    const found = tokensData.find(t => t.id === tokenId);
+                    if (found) {
+                        found.left = left + 'px';
+                        found.top = top + 'px';
+                    }
                 }
 
                 function onMouseMove(e) { moveAt(e.clientX, e.clientY); }
@@ -191,11 +176,35 @@
                 };
             };
 
-            container.appendChild(el);
+            map.appendChild(token);
         }
 
-        function saveTokens() {
-            localStorage.setItem('rp_tokens', JSON.stringify(tokens));
+        // Функция генерации ссылки для друга
+        function copyShareLink() {
+            const state = {
+                map: currentMapBase64,
+                tokens: tokensData
+            };
+            
+            try {
+                // Кодируем объект в строку Base64
+                const jsonString = unescape(encodeURIComponent(JSON.stringify(state)));
+                const base64State = btoa(jsonString);
+                
+                // Собираем финальный URL
+                const shareUrl = window.location.origin + window.location.pathname + '?state=' + base64State;
+                
+                // Копируем в буфер обмена
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    alert('Ссылка скопирована! Отправь её другу, и он увидит твою карту и фишки.');
+                }).catch(err => {
+                    console.error('Не удалось скопировать:', err);
+                    // Запасной вариант, если браузер блокирует clipboard API
+                    prompt('Скопируй эту ссылку вручную:', shareUrl);
+                });
+            } catch(e) {
+                alert('Картинка слишком большая для передачи через ссылку. Попробуй использовать карту меньшего размера (до 200-300 Кб).');
+            }
         }
     </script>
 </body>

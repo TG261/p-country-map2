@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мультиплеерный Штаб RP</title>
+    <title>Штаб RP</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -87,8 +87,8 @@
 </head>
 <body>
 
-    <h1>Мультиплеерный Штаб RP</h1>
-    <p>Перетаскивание фишек и смена карты синхронизируются в реальном времени!</p>
+    <h1>Штаб RP</h1>
+    <p>Создавайте фишки, двигайте их по карте и управляйте своими армиями!</p>
 
     <div class="controls">
         <button class="btn-inf" onclick="createToken('inf')">+ Пехота</button>
@@ -103,32 +103,20 @@
 
     <div id="map-container"></div>
 
-    <!-- Подключаем сокеты через CDN, чтобы Vercel их не терял -->
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
-        // Сначала находим контейнер, чтобы избежать ошибок с инициализацией
         const container = document.getElementById('map-container');
-        
-        // Проверяем, загрузилась ли библиотека сокетов
-        const socket = (typeof io !== 'undefined') ? io() : { on: () => {}, emit: () => {} };
+        let tokens = JSON.parse(localStorage.getItem('rp_tokens')) || {};
 
-        if (typeof io === 'undefined') {
-            console.error("Критическая ошибка: Не удалось загрузить Socket.io с CDN.");
+        // Загрузка карты из памяти при старте страницы
+        const savedMap = localStorage.getItem('rp_map');
+        if (savedMap) {
+            container.style.backgroundImage = `url("${savedMap}")`;
         }
 
-        socket.on('init-tokens', (tokens) => {
-            const currentBg = container.style.backgroundImage;
-            container.innerHTML = '';
-            container.style.backgroundImage = currentBg;
-            
-            for (let id in tokens) {
-                renderToken(tokens[id]);
-            }
-        });
-
-        socket.on('update-map', (mapDataUrl) => {
-            if (container) container.style.backgroundImage = `url("${mapDataUrl}")`;
-        });
+        // Отрисовка сохраненных фишек при старте
+        for (let id in tokens) {
+            renderToken(tokens[id]);
+        }
 
         function uploadMap(input) {
             const file = input.files[0];
@@ -138,7 +126,7 @@
             reader.onload = function(e) {
                 const base64Image = e.target.result;
                 container.style.backgroundImage = `url("${base64Image}")`;
-                socket.emit('change-map', base64Image);
+                localStorage.setItem('rp_map', base64Image); // Сохраняем карту в браузере
             };
             reader.readAsDataURL(file);
         }
@@ -146,12 +134,10 @@
         function createToken(type) {
             const id = 'token_' + Math.random().toString(36).substr(2, 9);
             const tokenData = { id, type, top: 50, left: 50 };
-            socket.emit('create-token', tokenData);
-        }
-
-        socket.on('token-created', (tokenData) => {
+            tokens[id] = tokenData;
+            saveTokens();
             renderToken(tokenData);
-        });
+        }
 
         function renderToken(tokenData) {
             const el = document.createElement('div');
@@ -169,7 +155,9 @@
             del.innerText = 'X';
             del.onclick = (e) => {
                 e.stopPropagation();
-                socket.emit('delete-token', tokenData.id);
+                el.remove();
+                delete tokens[tokenData.id];
+                saveTokens();
             };
             el.appendChild(del);
 
@@ -189,7 +177,9 @@
                     el.style.left = newLeft + 'px';
                     el.style.top = newTop + 'px';
 
-                    socket.emit('move-token', { id: tokenData.id, top: newTop, left: newLeft });
+                    tokens[tokenData.id].left = newLeft;
+                    tokens[tokenData.id].top = newTop;
+                    saveTokens();
                 }
 
                 function onMouseMove(e) { moveAt(e.clientX, e.clientY); }
@@ -204,18 +194,9 @@
             container.appendChild(el);
         }
 
-        socket.on('token-moved', (moveData) => {
-            const el = document.getElementById(moveData.id);
-            if (el) {
-                el.style.top = moveData.top + 'px';
-                el.style.left = moveData.left + 'px';
-            }
-        });
-
-        socket.on('token-deleted', (tokenId) => {
-            const el = document.getElementById(tokenId);
-            if (el) el.remove();
-        });
+        function saveTokens() {
+            localStorage.setItem('rp_tokens', JSON.stringify(tokens));
+        }
     </script>
 </body>
 </html>

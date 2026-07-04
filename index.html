@@ -63,7 +63,6 @@
         <button class="btn-inf" onclick="addToken('INF')">+ Пехота</button>
         <button class="btn-tank" onclick="addToken('TNK')">+ Танк</button>
         <button class="btn-air" onclick="addToken('AIR')">+ Авиация</button>
-        <input type="file" accept="image/*" onchange="loadMap(this)">
         <button class="btn-share" onclick="copyShareLink()">🔗 Ссылка для друга</button>
     </div>
 
@@ -71,54 +70,36 @@
 
     <script>
         const map = document.getElementById('map-container');
-        let tokensData = []; // Храним массив данных о фишках для генерации ссылки
-        let currentMapBase64 = "";
+        let tokensData = [];
 
-        // Проверяем, есть ли данные в ссылке при открытии сайта
+        // === 🗺️ СЮДА ВСТАВЬ ПРЯМУЮ ССЫЛКУ НА СВОЮ КАРТУ ===
+        const MAP_URL = "https://i.imgur.com/ТВОЯ_КАРТА.png"; 
+        
+        // Устанавливаем карту по умолчанию сразу при загрузке
+        map.style.backgroundImage = `url("${MAP_URL}")`;
+
+        // Проверяем фишки в ссылке при открытии
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const stateParam = urlParams.get('state');
+            const tokensParam = urlParams.get('tokens');
             
-            if (stateParam) {
+            if (tokensParam) {
                 try {
-                    const decodedData = JSON.parse(decodeURIComponent(escape(atob(stateParam))));
-                    
-                    // Восстанавливаем карту
-                    if (decodedData.map) {
-                        currentMapBase64 = decodedData.map;
-                        map.style.backgroundImage = "url('" + currentMapBase64 + "')";
-                    }
-                    
-                    // Восстанавливаем фишки
-                    if (decodedData.tokens) {
-                        decodedData.tokens.forEach(t => {
-                            createTokenElement(t.type, t.top, t.left);
-                        });
-                    }
+                    // Декодируем только фишки (ссылка короткая и стабильная)
+                    const decodedTokens = JSON.parse(decodeURIComponent(escape(atob(tokensParam))));
+                    decodedTokens.forEach(t => {
+                        createTokenElement(t.type, t.top, t.left);
+                    });
                 } catch (e) {
-                    console.error("Ошибка чтения ссылки:", e);
+                    console.error("Ошибка чтения фишек:", e);
                 }
             }
         };
-        
-        // Загрузка карты
-        function loadMap(input) {
-            const file = input.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                currentMapBase64 = e.target.result;
-                map.style.backgroundImage = "url('" + currentMapBase64 + "')";
-            };
-            reader.readAsDataURL(file);
-        }
 
-        // Логика добавления фишки кнопкой
         function addToken(type) {
             createTokenElement(type, '50px', '50px');
         }
 
-        // Создание элемента фишки на поле
         function createTokenElement(type, initialTop, initialLeft) {
             const token = document.createElement('div');
             const tokenId = 'token_' + Math.random().toString(36).substr(2, 9);
@@ -128,10 +109,8 @@
             token.style.left = initialLeft;
             token.dataset.id = tokenId;
 
-            // Запоминаем в наш массив данных
             tokensData.push({ id: tokenId, type: type, top: initialTop, left: initialLeft });
 
-            // Кнопка удаления
             const del = document.createElement('div');
             del.className = 'delete-btn';
             del.innerText = 'X';
@@ -142,7 +121,6 @@
             };
             token.appendChild(del);
 
-            // Перетаскивание
             token.onmousedown = function(e) {
                 e.preventDefault();
                 let shiftX = e.clientX - token.getBoundingClientRect().left;
@@ -159,7 +137,6 @@
                     token.style.left = left + 'px';
                     token.style.top = top + 'px';
 
-                    // Обновляем координаты в массиве
                     const found = tokensData.find(t => t.id === tokenId);
                     if (found) {
                         found.left = left + 'px';
@@ -179,31 +156,23 @@
             map.appendChild(token);
         }
 
-        // Функция генерации ссылки для друга
         function copyShareLink() {
-            const state = {
-                map: currentMapBase64,
-                tokens: tokensData
-            };
-            
+            if (tokensData.length === 0) {
+                alert('Сначала добавьте хотя бы одну фишку на карту!');
+                return;
+            }
             try {
-                // Кодируем объект в строку Base64
-                const jsonString = unescape(encodeURIComponent(JSON.stringify(state)));
-                const base64State = btoa(jsonString);
+                const jsonString = unescape(encodeURIComponent(JSON.stringify(tokensData)));
+                const base64Tokens = btoa(jsonString);
+                const shareUrl = window.location.origin + window.location.pathname + '?tokens=' + base64Tokens;
                 
-                // Собираем финальный URL
-                const shareUrl = window.location.origin + window.location.pathname + '?state=' + base64State;
-                
-                // Копируем в буфер обмена
                 navigator.clipboard.writeText(shareUrl).then(() => {
-                    alert('Ссылка скопирована! Отправь её другу, и он увидит твою карту и фишки.');
+                    alert('Ссылка скопирована! Ссылка короткая и откроется у друга без ошибок.');
                 }).catch(err => {
-                    console.error('Не удалось скопировать:', err);
-                    // Запасной вариант, если браузер блокирует clipboard API
                     prompt('Скопируй эту ссылку вручную:', shareUrl);
                 });
             } catch(e) {
-                alert('Картинка слишком большая для передачи через ссылку. Попробуй использовать карту меньшего размера (до 200-300 Кб).');
+                alert('Произошла ошибка при создании ссылки.');
             }
         }
     </script>

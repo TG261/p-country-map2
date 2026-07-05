@@ -63,6 +63,7 @@
         const popupTextarea = document.getElementById('popup-textarea');
         const saveBtn = document.getElementById('save-btn');
         let activeTokenId = null;
+        let activeTokenData = {}; // Хранилище для актуальных данных
 
         saveBtn.onclick = () => {
             if (activeTokenId) {
@@ -77,8 +78,7 @@
 
         function renderElement(id, data, type) {
             const el = document.createElement('div');
-            const typeValue = data.type ? data.type.toLowerCase() : 'default';
-            el.className = type === 'hex' ? 'hex' : `token token-${typeValue}`;
+            el.className = type === 'hex' ? 'hex' : `token token-${data.type ? data.type.toLowerCase() : 'default'}`;
             el.id = id;
             el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
             if (type === 'hex') el.style.backgroundImage = `url('${hexImages[data.type]}')`;
@@ -92,14 +92,13 @@
             if (type === 'token') {
                 const edit = document.createElement('button');
                 edit.className = 'edit-btn'; edit.innerText = '✎';
-                // Теперь используем onclick вместо onmouseenter для стабильности
                 edit.onclick = (e) => {
                     e.stopPropagation();
                     activeTokenId = id;
                     cardPopup.style.display = 'block';
                     cardPopup.style.left = (e.clientX + 15) + 'px';
                     cardPopup.style.top = (e.clientY + 15) + 'px';
-                    popupTextarea.value = data.info || "";
+                    popupTextarea.value = activeTokenData[id]?.info || data.info || "";
                 };
                 el.appendChild(edit);
             }
@@ -118,42 +117,23 @@
             mapContainer.appendChild(el);
         }
 
-    onChildChanged(ref(db, 'tokens'), (s) => {
-    const data = s.val();
-    const el = document.getElementById(s.key);
-    
-    // Обновляем визуальную позицию
-    if(el) { 
-        el.style.top = data.top + 'px'; 
-        el.style.left = data.left + 'px'; 
-    }
-
-    // Если этот токен сейчас открыт в карточке, обновляем текст, 
-    // НО только если пользователь не печатает в данный момент
-    if (activeTokenId === s.key && cardPopup.style.display === 'block') {
-        if (document.activeElement !== popupTextarea) {
-            popupTextarea.value = data.info || "";
-        }
-    }
-    
-    // ВАЖНО: обновляем данные внутри самой функции renderElement, 
-    // чтобы при следующем клике на "редактировать" подтягивались свежие данные
-    const tokenEl = document.getElementById(s.key);
-    if (tokenEl) {
-        // Мы перепривязываем событие клика, чтобы оно "видело" новые данные
-        tokenEl.querySelector('.edit-btn').onclick = (e) => {
-            e.stopPropagation();
-            activeTokenId = s.key;
-            cardPopup.style.display = 'block';
-            cardPopup.style.left = (e.clientX + 15) + 'px';
-            cardPopup.style.top = (e.clientY + 15) + 'px';
-            popupTextarea.value = data.info || "";
-        };
-    }
-});
+        onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
+        onChildAdded(ref(db, 'tokens'), (s) => {
+            activeTokenData[s.key] = s.val(); // Сохраняем актуальные данные
+            renderElement(s.key, s.val(), 'token');
+        });
+        
+        onChildChanged(ref(db, 'tokens'), (s) => {
+            activeTokenData[s.key] = s.val(); // Обновляем локальные данные
+            const el = document.getElementById(s.key); 
+            if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }
+            if (activeTokenId === s.key && cardPopup.style.display === 'block' && document.activeElement !== popupTextarea) {
+                popupTextarea.value = s.val().info || "";
+            }
+        });
         onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
         onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
-        onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());
+        onChildRemoved(ref(db, 'tokens'), (s) => { delete activeTokenData[s.key]; document.getElementById(s.key)?.remove(); });
         
         document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'town', top: 150, left: 150 });
         document.getElementById('add-field').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'field', top: 150, left: 150 });

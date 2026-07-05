@@ -62,11 +62,10 @@
     <div id="status-indicator">Подключение...</div>
     <div id="map-container"></div>
 
-    <script type="module">
+  <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // Ключи из твоего проекта
         const firebaseConfig = {
             apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
             authDomain: "rp-map-218d5.firebaseapp.com",
@@ -77,17 +76,24 @@
             appId: "1:786305486724:web:fbc318ab0864fa821897d1"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const mapContainer = document.getElementById('map-container');
-        const statusIndicator = document.getElementById('status-indicator');
-
-        onValue(ref(db, ".info/connected"), (snap) => {
-            statusIndicator.innerText = snap.val() ? "🟢 Подключено" : "🔴 Ошибка сети";
-            statusIndicator.style.color = snap.val() ? "#4CAF50" : "#f44336";
-        });
-
-        const hexImages = { town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png' };
-        const tokenIcons = { INF: '🏃', TNK: '🚜', AIR: '✈️' };
-
-        document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type:
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getDatabase(app);
+            
+            // Проверка подключения
+            const connectedRef = ref(db, ".info/connected");
+            onValue(connectedRef, (snap) => {
+                const status = document.getElementById('status-indicator');
+                if (snap.val() === true) {
+                    status.innerText = "🟢 Подключено";
+                    status.style.color = "#4CAF50";
+                } else {
+                    status.innerText = "🔴 Ошибка соединения";
+                    status.style.color = "#f44336";
+                }
+            });
+        } catch (e) {
+            console.error("Ошибка инициализации Firebase:", e);
+            document.getElementById('status-indicator').innerText = "🔴 Ошибка инициализации";
+        }
+    </script>

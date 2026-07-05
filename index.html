@@ -9,7 +9,7 @@
         
         button { padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; display: flex; align-items: center; gap: 5px; }
         .btn-inf { background: #4CAF50; color: white; }
-        .btn-tank { background: #d32f2f; color: white; } /* Красный цвет для техники */
+        .btn-tank { background: #d32f2f; color: white; }
         .btn-air { background: #FFC107; color: black; }
         
         .btn-hex { background: #795548; color: white; }
@@ -38,7 +38,7 @@
             z-index: 1;
         }
 
-        /* Обновленные стили фишек */
+        /* Обновленные стили фишек с фиксом цвета */
         .token {
             position: absolute;
             width: 45px;
@@ -55,9 +55,9 @@
             border: 2px solid #fff;
             z-index: 10;
         }
-        .token-inf { background: #2e7d32; }
-        .token-tank { background: #d32f2f; } /* Красный фон жетона техники */
-        .token-air { background: #f9a825; }
+        .token-inf { background: #2e7d32 !important; }
+        .token-tnk { background: #d32f2f !important; } /* Исправлен регистр для корректного отображения */
+        .token-air { background: #f9a825 !important; }
 
         .delete-btn {
             position: absolute;
@@ -84,16 +84,16 @@
     
     <div class="controls">
         <!-- Кнопки ландшафта -->
-        <button class="btn-hex" onclick="window.addHex('town')">🏰 + Гекс Город</button>
-        <button class="btn-hex" onclick="window.addHex('field')">🌱 + Гекс Поле</button>
-        <button class="btn-hex" onclick="window.addHex('forest')">🌲 + Гекс Лес</button>
+        <button class="btn-hex" id="add-town">🏰 + Гекс Город</button>
+        <button class="btn-hex" id="add-field">🌱 + Гекс Поле</button>
+        <button class="btn-hex" id="add-forest">🌲 + Гекс Лес</button>
         
         <span>|</span>
 
         <!-- Кнопки юнитов -->
-        <button class="btn-inf" onclick="window.addToken('INF')">🏃‍♂️ + Пехота</button>
-        <button class="btn-tank" onclick="window.addToken('TNK')">🚜 + Техника</button>
-        <button class="btn-air" onclick="window.addToken('AIR')">✈ + Авиация</button>
+        <button class="btn-inf" id="add-inf">🏃‍♂️ + Пехота</button>
+        <button class="btn-tank" id="add-tank">🚜 + Техника</button>
+        <button class="btn-air" id="add-air">✈ + Авиация</button>
     </div>
 
     <div id="map-container"></div>
@@ -145,13 +145,21 @@
             }
         });
 
-        // Глобальные функции для кнопок (привязаны к окну, чтобы HTML их видел)
-        window.addHex = function(type) {
+        // Назначение обработчиков клика внутри модуля
+        document.getElementById('add-town').addEventListener('click', () => addHex('town'));
+        document.getElementById('add-field').addEventListener('click', () => addHex('field'));
+        document.getElementById('add-forest').addEventListener('click', () => addHex('forest'));
+
+        document.getElementById('add-inf').addEventListener('click', () => addToken('INF'));
+        document.getElementById('add-tank').addEventListener('click', () => addToken('TNK'));
+        document.getElementById('add-air').addEventListener('click', () => addToken('AIR'));
+
+        function addHex(type) {
             const hexId = 'hex_' + Math.random().toString(36).substr(2, 9);
             set(ref(db, 'hexes/' + hexId), { type: type, top: 150, left: 150 });
         }
 
-        window.addToken = function(type) {
+        function addToken(type) {
             const tokenId = 'token_' + Math.random().toString(36).substr(2, 9);
             set(ref(db, 'tokens/' + tokenId), { type: type, top: 50, left: 50 });
         }

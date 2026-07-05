@@ -19,8 +19,29 @@
         .token-inf { background: #2e7d32 !important; }
         .token-tnk { background: #d32f2f !important; }
         .token-air { background: #f9a825 !important; }
-        .delete-btn { position: absolute; top: -8px; right: -8px; background: #ff3b30; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; font-weight: bold; cursor: pointer; display: none; align-items: center; justify-content: center; z-index: 10; }
+        
+        /* Улучшенная кнопка удаления */
+        .delete-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ff3b30;
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
         .hex:hover .delete-btn, .token:hover .delete-btn { display: flex; }
+        
         #status-indicator { font-size: 14px; margin-top: 10px; font-weight: bold; }
     </style>
 </head>
@@ -69,6 +90,7 @@
         const hexImages = { town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png' };
         const tokenIcons = { INF: '🏃', TNK: '🚜', AIR: '✈️' };
 
+        // Функции добавления
         document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'town', top: 150, left: 150 });
         document.getElementById('add-field').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'field', top: 150, left: 150 });
         document.getElementById('add-forest').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'forest', top: 150, left: 150 });
@@ -95,10 +117,8 @@
 
         onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
         onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
-        
         onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
         onChildChanged(ref(db, 'tokens'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
-        
         onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
         onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());
 

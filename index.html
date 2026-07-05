@@ -2,62 +2,53 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Система управления картой</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #222; color: #fff; text-align: center; margin: 0; padding: 20px; }
-        .controls { margin: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; align-items: center; }
-        button { padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; display: flex; align-items: center; gap: 5px; }
-        .btn-inf { background: #4CAF50; color: white; }
-        .btn-tank { background: #d32f2f; color: white; }
-        .btn-air { background: #FFC107; color: black; }
-        .btn-hex { background: #795548; color: white; }
-        #map-container { position: relative; width: 1000px; height: 600px; background: #333; border: 2px solid #555; margin: 20px auto; overflow: hidden; border-radius: 10px; }
-        
-        .hex { position: absolute; width: 100px; height: 115.47px; background-size: cover; background-position: center; cursor: grab; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; display: flex; align-items: center; justify-content: center; }
-        .token { position: absolute; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: grab; border: 2px solid white; z-index: 2; }
-        
-        .delete-btn, .edit-btn { border-radius: 50%; width: 26px; height: 26px; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; color: white; padding: 0; position: absolute; }
-        .token .delete-btn { top: -8px; right: -8px; background: #ff3b30; }
-        .token .edit-btn { top: 25px; right: -8px; background: #2196F3; }
-        .hex .delete-btn { background: #ff3b30; display: none; z-index: 2; }
-        .hex:hover .delete-btn { display: flex; }
-
-        /* Стиль карточки с поддержкой абзацев */
-        #card-popup { display: none; position: fixed; background: #e6c2b8; border: 2px solid #000; padding: 15px; z-index: 10000; pointer-events: none; border-radius: 2px; color: black; width: 150px; text-align: left; box-shadow: 5px 5px 10px rgba(0,0,0,0.5); }
-        #popup-content { white-space: pre-wrap; word-wrap: break-word; font-weight: normal; }
+        /* ... (ваш существующий CSS) ... */
+        #card-popup { 
+            display: none; position: fixed; background: #e6c2b8; border: 2px solid #000; padding: 15px; 
+            z-index: 10000; border-radius: 2px; color: black; width: 200px; text-align: left; 
+            box-shadow: 5px 5px 10px rgba(0,0,0,0.5); 
+        }
+        #popup-textarea { 
+            width: 100%; height: 100px; background: transparent; border: 1px solid #000; 
+            resize: none; font-family: Arial, sans-serif; white-space: pre-wrap; 
+        }
     </style>
 </head>
 <body>
-    <h1>Система управления картой</h1>
-    <div class="controls">
-        <button class="btn-hex" id="add-town">🏰 + Город</button>
-        <button class="btn-hex" id="add-field">🌱 + Поле</button>
-        <button class="btn-hex" id="add-forest">🌲 + Лес</button>
-        <button class="btn-inf" id="add-inf">🏃 + Пехота</button>
-        <button class="btn-tank" id="add-tank">🚜 + Техника</button>
-        <button class="btn-air" id="add-air">✈️ + Авиация</button>
-    </div>
-    <div id="map-container"></div>
-
-    <div id="card-popup">
-        <div style="font-weight: bold; border-bottom: 1px solid #000; margin-bottom: 10px;">КАРТОЧКА</div>
-        <div id="popup-content"></div>
+    <!-- ... (ваш HTML до скрипта) ... -->
+    <div id="card-popup" onmouseleave="this.style.display='none'">
+        <div style="font-weight: bold; border-bottom: 1px solid #000; margin-bottom: 5px;">КАРТОЧКА</div>
+        <textarea id="popup-textarea"></textarea>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
-            authDomain: "rp-map-218d5.firebaseapp.com",
-            databaseURL: "https://rp-map-218d5-default-rtdb.firebaseio.com",
-            projectId: "rp-map-218d5",
-            storageBucket: "rp-map-218d5.firebasestorage.app",
-            messagingSenderId: "786305486724",
-            appId: "1:786305486724:web:fbc318ab0864fa821897d1"
+        // ... (ваши импорты и инициализация Firebase)
+        let activeTokenId = null;
+
+        // Функция сохранения при потере фокуса
+        document.getElementById('popup-textarea').onblur = () => {
+            const newText = document.getElementById('popup-textarea').value;
+            if (activeTokenId) update(ref(db, 'tokens/' + activeTokenId), { info: newText });
         };
+
+        function renderElement(id, data, type) {
+            // ... (ваш код создания элемента)
+            if (type === 'token') {
+                const edit = document.createElement('button');
+                edit.className = 'edit-btn'; edit.innerText = '✎';
+                
+                edit.onmouseenter = (e) => {
+                    activeTokenId = id;
+                    cardPopup.style.display = 'block';
+                    cardPopup.style.left = (e.clientX + 15) + 'px';
+                    cardPopup.style.top = (e.clientY + 15) + 'px';
+                    document.getElementById('popup-textarea').value = data.info || "";
+                };
+                // edit.onmouseleave удален, так как теперь есть onmouseleave на самом div карточки
+                el.appendChild(edit);
+            }
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const mapContainer = document.getElementById('map-container');

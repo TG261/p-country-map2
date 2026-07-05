@@ -8,11 +8,12 @@
         body { font-family: Arial, sans-serif; background: #222; color: #fff; text-align: center; margin: 0; padding: 20px; }
         .controls { margin: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; align-items: center; }
         
-        button { padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; display: flex; align-items: center; gap: 5px; }
+        button { padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; display: flex; align-items: center; gap: 5px; user-select: none; }
         .btn-inf { background: #4CAF50; color: white; }
         .btn-tank { background: #d32f2f; color: white; }
         .btn-air { background: #FFC107; color: black; }
         .btn-hex { background: #795548; color: white; }
+        .btn-share { background: #0088cc; color: white; } /* Стиль для кнопки ссылки */
         
         span { color: #888; font-weight: bold; margin: 0 10px; }
 
@@ -39,7 +40,6 @@
             z-index: 1;
         }
 
-        /* Стили фишек с фиксом цвета */
         .token {
             position: absolute;
             width: 45px;
@@ -60,7 +60,6 @@
         .token-tnk { background: #d32f2f !important; }
         .token-air { background: #f9a825 !important; }
 
-        /* Красная кнопка удаления, которая всплывает при наведении */
         .delete-btn {
             position: absolute;
             top: 5px;
@@ -81,13 +80,11 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
 
-        /* Для токенов кнопка удаления позиционируется немного иначе, чтобы быть по центру */
         .token .delete-btn {
             top: -8px;
             right: -8px;
         }
 
-        /* Показываем кнопку удаления только при наведении мыши на элемент */
         .hex:hover .delete-btn, .token:hover .delete-btn {
             display: flex;
         }
@@ -109,6 +106,11 @@
         <button class="btn-inf" id="add-inf">🏃 + Пехота</button>
         <button class="btn-tank" id="add-tank">🚜 + Техника</button>
         <button class="btn-air" id="add-air">✈️ + Авиация</button>
+
+        <span>|</span>
+
+        <!-- Кнопка Мультиплеера -->
+        <button class="btn-share" id="share-btn">🔗 Ссылка для друга</button>
     </div>
 
     <div id="map-container"></div>
@@ -117,7 +119,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // Конфигурация Firebase
         const firebaseConfig = {
             databaseURL: "https://p-country-map2-default-rtdb.firebaseio.com/"
         };
@@ -126,21 +127,19 @@
         const db = getDatabase(app);
         const mapContainer = document.getElementById('map-container');
 
-        // Ссылки на изображения гексов в папке assets
         const hexImages = {
             town: 'assets/Город.png',
             field: 'assets/Равнина.png',
             forest: 'assets/Лес.png'
         };
 
-        // Иконки для фишек
         const tokenIcons = {
             INF: '🏃',
             TNK: '🚜',
             AIR: '✈️'
         };
 
-        // Назначение обработчиков клика внутри модуля
+        // Назначение обработчиков клика
         document.getElementById('add-town').addEventListener('click', () => addHex('town'));
         document.getElementById('add-field').addEventListener('click', () => addHex('field'));
         document.getElementById('add-forest').addEventListener('click', () => addHex('forest'));
@@ -148,6 +147,25 @@
         document.getElementById('add-inf').addEventListener('click', () => addToken('INF'));
         document.getElementById('add-tank').addEventListener('click', () => addToken('TNK'));
         document.getElementById('add-air').addEventListener('click', () => addToken('AIR'));
+
+        // Логика кнопки "Ссылка для друга"
+        document.getElementById('share-btn').addEventListener('click', () => {
+            const currentUrl = window.location.href; // Берет адрес текущего сайта
+            navigator.clipboard.writeText(currentUrl).then(() => {
+                const shareBtn = document.getElementById('share-btn');
+                const originalText = shareBtn.innerHTML;
+                
+                shareBtn.innerHTML = '✅ Скопировано!';
+                shareBtn.style.background = '#4CAF50';
+                
+                setTimeout(() => {
+                    shareBtn.innerHTML = originalText;
+                    shareBtn.style.background = '#0088cc';
+                }, 1500);
+            }).catch(err => {
+                alert('Не удалось скопировать ссылку, скопируйте её из адресной строки браузера.');
+            });
+        });
 
         function addHex(type) {
             const hexId = 'hex_' + Math.random().toString(36).substr(2, 9);
@@ -159,14 +177,12 @@
             set(ref(db, 'tokens/' + tokenId), { type: type, top: 50, left: 50 });
         }
 
-        // Рендеринг гексов из Firebase
         onChildAdded(ref(db, 'hexes'), (snapshot) => {
             const id = snapshot.key;
             const data = snapshot.val();
             createHexElement(id, data);
         });
 
-        // Рендеринг фишек из Firebase
         onChildAdded(ref(db, 'tokens'), (snapshot) => {
             const id = snapshot.key;
             const data = snapshot.val();
@@ -181,12 +197,11 @@
             hex.style.left = data.left + 'px';
             hex.style.backgroundImage = `url('${hexImages[data.type]}')`;
 
-            // Создание кнопки удаления для гекса
             const delBtn = document.createElement('button');
             delBtn.className = 'delete-btn';
             delBtn.innerText = 'X';
             delBtn.onclick = (e) => {
-                e.stopPropagation(); // Чтобы при клике на крестик гекс не начинал перетаскиваться
+                e.stopPropagation();
                 remove(ref(db, 'hexes/' + id));
             };
             hex.appendChild(delBtn);
@@ -203,7 +218,6 @@
             token.style.left = data.left + 'px';
             token.innerText = tokenIcons[data.type];
 
-            // Создание кнопки удаления для фишки
             const delBtn = document.createElement('button');
             delBtn.className = 'delete-btn';
             delBtn.innerText = 'X';
@@ -217,7 +231,6 @@
             mapContainer.appendChild(token);
         }
 
-        // Логика перемещения (Drag & Drop)
         function makeDraggable(element, dbPath) {
             element.onmousedown = function(event) {
                 if (event.target.className === 'delete-btn') return;
@@ -245,7 +258,6 @@
             element.ondragstart = function() { return false; };
         }
 
-        // Синхронизация изменений перемещения
         onChildChanged(ref(db, 'hexes'), (snapshot) => {
             const el = document.getElementById(snapshot.key);
             if (el) {
@@ -262,7 +274,6 @@
             }
         });
 
-        // Синхронизация удаления
         onChildRemoved(ref(db, 'hexes'), (snapshot) => {
             const el = document.getElementById(snapshot.key);
             if (el) el.remove();

@@ -39,7 +39,7 @@
         <button class="btn-air" id="add-air">✈️ + Авиация</button>
     </div>
     <div id="map-container"></div>
-    <div id="card-popup" onmouseleave="this.style.display='none'">
+    <div id="card-popup">
         <div style="font-weight: bold; border-bottom: 1px solid #000; margin-bottom: 5px;">КАРТОЧКА</div>
         <textarea id="popup-textarea"></textarea>
         <button id="save-btn">💾 Сохранить</button>
@@ -64,11 +64,12 @@
         const saveBtn = document.getElementById('save-btn');
         let activeTokenId = null;
 
-        // Сохранение только при нажатии на кнопку
+        // Сохранение по кнопке
         saveBtn.onclick = () => {
             if (activeTokenId) {
                 update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
-                alert("Сохранено!");
+                cardPopup.style.display = 'none';
+                activeTokenId = null;
             }
         };
 
@@ -79,6 +80,7 @@
             const el = document.createElement('div');
             const typeValue = data.type ? data.type.toLowerCase() : 'default';
             el.className = type === 'hex' ? 'hex' : `token token-${typeValue}`;
+            
             el.id = id;
             el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
             if (type === 'hex') el.style.backgroundImage = `url('${hexImages[data.type]}')`;
@@ -88,6 +90,7 @@
             del.className = 'delete-btn'; del.innerText = 'X';
             del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
             el.appendChild(del);
+            
             if (type === 'token') {
                 const edit = document.createElement('button');
                 edit.className = 'edit-btn'; edit.innerText = '✎';
@@ -120,14 +123,12 @@
         
         onChildChanged(ref(db, 'tokens'), (s) => {
             const data = s.val();
-            const el = document.getElementById(s.key);
-            if (el) { el.style.top = data.top + 'px'; el.style.left = data.left + 'px'; }
-            // Обновляем текст, если пользователь не меняет его в данный момент
+            const el = document.getElementById(s.key); 
+            if(el) { el.style.top = data.top + 'px'; el.style.left = data.left + 'px'; }
             if (activeTokenId === s.key && cardPopup.style.display === 'block' && document.activeElement !== popupTextarea) {
                 popupTextarea.value = data.info || "";
             }
         });
-        
         onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
         onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
         onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());

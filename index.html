@@ -19,9 +19,24 @@
         .token-tnk { background: #d32f2f; }
         .token-air { background: #f9a825; }
         
-        .delete-btn { position: absolute; top: -5px; right: -5px; background: #ff3b30; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9999; }
-        /* Кнопка карандаша */
-        .edit-btn { position: absolute; top: 25px; right: -5px; background: #2196F3; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9999; }
+        /* Общие стили для круглых кнопок с контуром */
+        .delete-btn, .edit-btn { 
+            position: absolute; 
+            border-radius: 50%; 
+            width: 26px; 
+            height: 26px; 
+            font-size: 14px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            z-index: 9999; 
+            border: 2px solid white; /* Контур */
+            color: white;
+            padding: 0;
+        }
+        .delete-btn { top: -8px; right: -8px; background: #ff3b30; }
+        .edit-btn { top: 25px; right: -8px; background: #2196F3; }
     </style>
 </head>
 <body>
@@ -38,6 +53,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        
         const firebaseConfig = {
             apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
             authDomain: "rp-map-218d5.firebaseapp.com",
@@ -61,13 +77,13 @@
             if (type === 'hex') el.style.backgroundImage = `url('${hexImages[data.type]}')`;
             else el.innerText = tokenIcons[data.type];
             
-            // Кнопка удаления
+            // Кнопка удаления (теперь круглая с контуром)
             const del = document.createElement('button');
             del.className = 'delete-btn'; del.innerText = 'X';
             del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
             el.appendChild(del);
 
-            // Кнопка карандаша (только для токенов)
+            // Кнопка карандаша (только для токенов, круглая с контуром)
             if (type === 'token') {
                 const edit = document.createElement('button');
                 edit.className = 'edit-btn'; edit.innerText = '✎';
@@ -79,7 +95,7 @@
                     }
                 };
                 el.appendChild(edit);
-                if (data.info) el.title = data.info; // Показывает инфо при наведении
+                if (data.info) el.title = data.info;
             }
 
             el.onmousedown = (e) => {

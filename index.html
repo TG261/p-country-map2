@@ -2,27 +2,42 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Система управления картой</title>
     <style>
-        body { font-family: sans-serif; background: #222; color: #fff; text-align: center; padding: 20px; }
-        .controls { margin-bottom: 20px; display: flex; justify-content: center; gap: 10px; }
-        button { padding: 10px; cursor: pointer; }
-        #map-container { position: relative; width: 1000px; height: 600px; background: #333; margin: 0 auto; border: 2px solid #555; }
-        .hex, .token { position: absolute; cursor: grab; }
-        .delete-btn { position: absolute; top: -10px; right: -10px; background: red; color: white; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 100; }
+        body { font-family: Arial, sans-serif; background: #222; color: #fff; text-align: center; margin: 0; padding: 20px; }
+        .controls { margin: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; align-items: center; }
+        button { padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; display: flex; align-items: center; gap: 5px; }
+        .btn-inf { background: #4CAF50; color: white; }
+        .btn-tank { background: #d32f2f; color: white; }
+        .btn-air { background: #FFC107; color: black; }
+        .btn-hex { background: #795548; color: white; }
+        #map-container { position: relative; width: 1000px; height: 600px; background: #333; border: 2px solid #555; margin: 20px auto; overflow: hidden; border-radius: 10px; }
+        .hex { position: absolute; width: 100px; height: 115.47px; background-size: cover; background-position: center; cursor: grab; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; }
+        .token { position: absolute; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: grab; border: 2px solid white; z-index: 2; }
+        .token-inf { background: #2e7d32; }
+        .token-tnk { background: #d32f2f; }
+        .token-air { background: #f9a825; }
+        .delete-btn { position: absolute; top: -5px; right: -5px; background: #ff3b30; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9999; }
     </style>
 </head>
 <body>
 
+    <h1>Система управления картой</h1>
     <div class="controls">
-        <button id="add-town">🏰 Город</button>
-        <button id="add-inf">🏃 Пехота</button>
+        <button class="btn-hex" id="add-town">🏰 + Город</button>
+        <button class="btn-hex" id="add-field">🌱 + Поле</button>
+        <button class="btn-hex" id="add-forest">🌲 + Лес</button>
+        <button class="btn-inf" id="add-inf">🏃 + Пехота</button>
+        <button class="btn-tank" id="add-tank">🚜 + Техника</button>
+        <button class="btn-air" id="add-air">✈️ + Авиация</button>
     </div>
+
     <div id="map-container"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onChildAdded, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
@@ -38,42 +53,50 @@
         const db = getDatabase(app);
         const mapContainer = document.getElementById('map-container');
 
-        // Функция рендеринга
-        function render(id, data, type) {
-            const el = document.createElement('div');
-            el.className = type;
-            el.id = id;
-            el.style.left = data.left + 'px';
-            el.style.top = data.top + 'px';
-            el.style.width = '50px'; el.style.height = '50px';
-            el.style.background = type === 'hex' ? 'brown' : 'green';
+        const hexImages = { town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png' };
+        const tokenIcons = { INF: '🏃', TNK: '🚜', AIR: '✈️' };
 
-            const del = document.createElement('div');
-            del.className = 'delete-btn';
-            del.innerText = 'X';
-            del.onclick = (e) => { e.stopPropagation(); remove(ref(db, type + 's/' + id)); };
-            
+        function renderElement(id, data, type) {
+            const el = document.createElement('div');
+            el.className = type === 'hex' ? 'hex' : `token token-${data.type.toLowerCase()}`;
+            el.id = id;
+            el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
+            if (type === 'hex') el.style.backgroundImage = `url('${hexImages[data.type]}')`;
+            else el.innerText = tokenIcons[data.type];
+
+            const del = document.createElement('button');
+            del.className = 'delete-btn'; del.innerText = 'X';
+            del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
             el.appendChild(del);
-            mapContainer.appendChild(el);
 
             el.onmousedown = (e) => {
                 if (e.target.className === 'delete-btn') return;
-                document.onmousemove = (ev) => {
-                    update(ref(db, type + 's/' + id), { top: ev.pageY - 50, left: ev.pageX - 50 });
+                let shiftX = e.clientX - el.getBoundingClientRect().left;
+                let shiftY = e.clientY - el.getBoundingClientRect().top;
+                document.onmousemove = (e) => {
+                    let x = e.clientX - mapContainer.getBoundingClientRect().left - shiftX;
+                    let y = e.clientY - mapContainer.getBoundingClientRect().top - shiftY;
+                    el.style.left = x + 'px'; el.style.top = y + 'px';
+                    update(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id), { top: y, left: x });
                 };
-                document.onmouseup = () => document.onmousemove = null;
+                document.onmouseup = () => { document.onmousemove = null; };
             };
+            mapContainer.appendChild(el);
         }
 
-        // Слушатели
-        onChildAdded(ref(db, 'hexes'), (s) => render(s.key, s.val(), 'hex'));
-        onChildAdded(ref(db, 'tokens'), (s) => render(s.key, s.val(), 'token'));
+        onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
+        onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
+        onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
+        onChildChanged(ref(db, 'tokens'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
         onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
         onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());
 
-        // Добавление
-        document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { top: 100, left: 100 });
-        document.getElementById('add-inf').onclick = () => set(ref(db, 'tokens/' + Date.now()), { top: 100, left: 200 });
+        document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'town', top: 150, left: 150 });
+        document.getElementById('add-field').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'field', top: 150, left: 150 });
+        document.getElementById('add-forest').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'forest', top: 150, left: 150 });
+        document.getElementById('add-inf').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'INF', top: 50, left: 50 });
+        document.getElementById('add-tank').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'TNK', top: 50, left: 50 });
+        document.getElementById('add-air').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'AIR', top: 50, left: 50 });
     </script>
 </body>
 </html>

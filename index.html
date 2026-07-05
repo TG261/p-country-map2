@@ -64,7 +64,8 @@
         const popupTextarea = document.getElementById('popup-textarea');
         let activeTokenId = null;
 
-        popupTextarea.onblur = () => {
+        // Автосохранение каждой буквы[cite: 1]
+        popupTextarea.oninput = () => {
             if (activeTokenId) update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
         };
 
@@ -114,8 +115,17 @@
 
         onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
         onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
+        
+        // Обновление текста на лету, если его изменил другой пользователь[cite: 1]
+        onChildChanged(ref(db, 'tokens'), (s) => {
+            if (activeTokenId === s.key && cardPopup.style.display === 'block') {
+                if (document.activeElement !== popupTextarea) popupTextarea.value = s.val().info || "";
+            }
+            const el = document.getElementById(s.key);
+            if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }
+        });
+
         onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
-        onChildChanged(ref(db, 'tokens'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
         onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
         onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());
         
@@ -125,17 +135,6 @@
         document.getElementById('add-inf').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'INF', top: 50, left: 50, info: "Пехота" });
         document.getElementById('add-tank').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'TNK', top: 50, left: 50, info: "Техника" });
         document.getElementById('add-air').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'AIR', top: 50, left: 50, info: "Авиация" });
-        // Добавьте этот слушатель в конец вашего скрипта
-onChildChanged(ref(db, 'tokens'), (s) => {
-    // Если id измененного токена совпадает с тем, что сейчас активно в карточке
-    if (activeTokenId === s.key && cardPopup.style.display === 'block') {
-        const newData = s.val();
-        // Обновляем текст в textarea, только если пользователь не вводит текст в этот момент
-        if (document.activeElement !== popupTextarea) {
-            popupTextarea.value = newData.info || "";
-        }
-    }
-});
     </script>
 </body>
 </html>

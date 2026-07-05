@@ -60,17 +60,13 @@
         const cardPopup = document.getElementById('card-popup');
         const popupTextarea = document.getElementById('popup-textarea');
         let activeTokenId = null;
-
         popupTextarea.oninput = () => {
             if (activeTokenId) update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
         };
-
         const hexImages = { town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png' };
         const tokenIcons = { INF: '🏃', TNK: '🚜', AIR: '✈️' };
-
         function renderElement(id, data, type) {
             const el = document.createElement('div');
-            // Безопасная проверка наличия типа для исключения ошибки toLowerCase()
             const typeValue = data.type ? data.type.toLowerCase() : 'default';
             el.className = type === 'hex' ? 'hex' : `token token-${typeValue}`;
             
@@ -109,18 +105,28 @@
             };
             mapContainer.appendChild(el);
         }
-
         onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
         onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
         
         onChildChanged(ref(db, 'tokens'), (s) => {
-            if (activeTokenId === s.key && cardPopup.style.display === 'block' && document.activeElement !== popupTextarea) {
-                popupTextarea.value = s.val().info || "";
+            const data = s.val();
+            const el = document.getElementById(s.key);
+            
+            // 1. Если токен существует, обновляем его позицию
+            if (el) {
+                el.style.top = data.top + 'px';
+                el.style.left = data.left + 'px';
             }
-            const el = document.getElementById(s.key); 
-            if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }
+            
+            // 2. Если сейчас открыта карточка именно этого токена
+            // И пользователь НЕ печатает в ней прямо сейчас, обновляем текст
+            if (activeTokenId === s.key && cardPopup.style.display === 'block') {
+                if (document.activeElement !== popupTextarea) {
+                    popupTextarea.value = data.info || "";
+                }
+            }
         });
-
+        
         onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
         onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
         onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());

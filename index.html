@@ -88,6 +88,13 @@
         .hex:hover .delete-btn, .token:hover .delete-btn {
             display: flex;
         }
+
+        /* Индикатор подключения */
+        #status-indicator {
+            font-size: 14px;
+            color: #FFC107;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -110,12 +117,14 @@
         <button class="btn-share" id="share-btn">🔗 Ссылка для друга</button>
     </div>
 
+    <div id="status-indicator">Подключение к серверу тактики...</div>
     <div id="map-container"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
+        // Твой актуальный конфиг Realtime Database
         const firebaseConfig = {
             databaseURL: "https://p-country-map2-default-rtdb.firebaseio.com/"
         };
@@ -123,6 +132,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const mapContainer = document.getElementById('map-container');
+        const statusIndicator = document.getElementById('status-indicator');
 
         const hexImages = {
             town: 'assets/Город.png',
@@ -135,6 +145,18 @@
             TNK: '🚜',
             AIR: '✈️'
         };
+
+        // Отслеживание статуса подключения к Firebase
+        const connectedRef = ref(db, ".info/connected");
+        onValue(connectedRef, (snap) => {
+            if (snap.val() === true) {
+                statusIndicator.innerText = "🟢 Подключено к сети мультиплеера";
+                statusIndicator.style.color = "#4CAF50";
+            } else {
+                statusIndicator.innerText = "🔴 Нет связи с сервером (Проверь правила Firebase или интернет)";
+                statusIndicator.style.color = "#f44336";
+            }
+        });
 
         // Обработчики кнопок
         document.getElementById('add-town').addEventListener('click', () => addHex('town'));
@@ -163,20 +185,24 @@
 
         function addHex(type) {
             const hexId = 'hex_' + Math.random().toString(36).substr(2, 9);
-            set(ref(db, 'hexes/' + hexId), { type: type, top: 150, left: 150 });
+            set(ref(db, 'hexes/' + hexId), { type: type, top: 150, left: 150 })
+                .catch(err => alert("Ошибка записи гекса: " + err.message));
         }
 
         function addToken(type) {
             const tokenId = 'token_' + Math.random().toString(36).substr(2, 9);
-            set(ref(db, 'tokens/' + tokenId), { type: type, top: 50, left: 50 });
+            set(ref(db, 'tokens/' + tokenId), { type: type, top: 50, left: 50 })
+                .catch(err => alert("Ошибка записи юнита: " + err.message));
         }
 
-        // Чистый вчерашний мультиплеерный рендеринг без конфликтов
+        // Синхронизация: улавливаем всё, что уже есть в базе и что добавляется
         onChildAdded(ref(db, 'hexes'), (snapshot) => {
             const id = snapshot.key;
             if (!document.getElementById(id)) {
                 createHexElement(id, snapshot.val());
             }
+        }, (error) => {
+            alert("Ошибка чтения гексов: " + error.message);
         });
 
         onChildAdded(ref(db, 'tokens'), (snapshot) => {
@@ -184,6 +210,8 @@
             if (!document.getElementById(id)) {
                 createTokenElement(id, snapshot.val());
             }
+        }, (error) => {
+            alert("Ошибка чтения юнитов: " + error.message);
         });
 
         function createHexElement(id, data) {

@@ -64,7 +64,6 @@
         const saveBtn = document.getElementById('save-btn');
         let activeTokenId = null;
 
-        // Сохранение по кнопке
         saveBtn.onclick = () => {
             if (activeTokenId) {
                 update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
@@ -80,7 +79,6 @@
             const el = document.createElement('div');
             const typeValue = data.type ? data.type.toLowerCase() : 'default';
             el.className = type === 'hex' ? 'hex' : `token token-${typeValue}`;
-            
             el.id = id;
             el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
             if (type === 'hex') el.style.backgroundImage = `url('${hexImages[data.type]}')`;
@@ -94,7 +92,9 @@
             if (type === 'token') {
                 const edit = document.createElement('button');
                 edit.className = 'edit-btn'; edit.innerText = '✎';
-                edit.onmouseenter = (e) => {
+                // Теперь используем onclick вместо onmouseenter для стабильности
+                edit.onclick = (e) => {
+                    e.stopPropagation();
                     activeTokenId = id;
                     cardPopup.style.display = 'block';
                     cardPopup.style.left = (e.clientX + 15) + 'px';

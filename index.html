@@ -2,21 +2,27 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Диагностика карты</title>
+    <title>Система управления картой</title>
+    <style>
+        body { font-family: sans-serif; background: #222; color: #fff; text-align: center; padding: 20px; }
+        .controls { margin-bottom: 20px; display: flex; justify-content: center; gap: 10px; }
+        button { padding: 10px; cursor: pointer; }
+        #map-container { position: relative; width: 1000px; height: 600px; background: #333; margin: 0 auto; border: 2px solid #555; }
+        .hex, .token { position: absolute; cursor: grab; }
+        .delete-btn { position: absolute; top: -10px; right: -10px; background: red; color: white; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 100; }
+    </style>
 </head>
 <body>
-    <h1>Диагностика</h1>
-    <button id="test-btn">Нажми меня для теста</button>
-    <div id="log" style="white-space: pre-wrap; font-family: monospace; background: #eee; padding: 10px;"></div>
+
+    <div class="controls">
+        <button id="add-town">🏰 Город</button>
+        <button id="add-inf">🏃 Пехота</button>
+    </div>
+    <div id="map-container"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-        const log = (msg) => {
-            console.log(msg);
-            document.getElementById('log').innerText += msg + "\n";
-        };
+        import { getDatabase, ref, set, onChildAdded, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
@@ -28,23 +34,46 @@
             appId: "1:786305486724:web:fbc318ab0864fa821897d1"
         };
 
-        try {
-            const app = initializeApp(firebaseConfig);
-            const db = getDatabase(app);
-            log("Firebase инициализирован успешно.");
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const mapContainer = document.getElementById('map-container');
 
-            document.getElementById('test-btn').onclick = async () => {
-                log("Попытка записи в базу...");
-                try {
-                    await set(ref(db, 'test'), { time: Date.now() });
-                    log("УСПЕХ! Данные записаны.");
-                } catch (err) {
-                    log("ОШИБКА записи: " + err.message);
-                }
+        // Функция рендеринга
+        function render(id, data, type) {
+            const el = document.createElement('div');
+            el.className = type;
+            el.id = id;
+            el.style.left = data.left + 'px';
+            el.style.top = data.top + 'px';
+            el.style.width = '50px'; el.style.height = '50px';
+            el.style.background = type === 'hex' ? 'brown' : 'green';
+
+            const del = document.createElement('div');
+            del.className = 'delete-btn';
+            del.innerText = 'X';
+            del.onclick = (e) => { e.stopPropagation(); remove(ref(db, type + 's/' + id)); };
+            
+            el.appendChild(del);
+            mapContainer.appendChild(el);
+
+            el.onmousedown = (e) => {
+                if (e.target.className === 'delete-btn') return;
+                document.onmousemove = (ev) => {
+                    update(ref(db, type + 's/' + id), { top: ev.pageY - 50, left: ev.pageX - 50 });
+                };
+                document.onmouseup = () => document.onmousemove = null;
             };
-        } catch (e) {
-            log("КРИТИЧЕСКАЯ ОШИБКА: " + e.message);
         }
+
+        // Слушатели
+        onChildAdded(ref(db, 'hexes'), (s) => render(s.key, s.val(), 'hex'));
+        onChildAdded(ref(db, 'tokens'), (s) => render(s.key, s.val(), 'token'));
+        onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
+        onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());
+
+        // Добавление
+        document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { top: 100, left: 100 });
+        document.getElementById('add-inf').onclick = () => set(ref(db, 'tokens/' + Date.now()), { top: 100, left: 200 });
     </script>
 </body>
 </html>

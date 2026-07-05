@@ -13,7 +13,7 @@
         .btn-tank { background: #d32f2f; color: white; }
         .btn-air { background: #FFC107; color: black; }
         .btn-hex { background: #795548; color: white; }
-        .btn-share { background: #0088cc; color: white; } /* Стиль для кнопки ссылки */
+        .btn-share { background: #0088cc; color: white; }
         
         span { color: #888; font-weight: bold; margin: 0 10px; }
 
@@ -35,7 +35,7 @@
             background-size: cover;
             background-position: center;
             cursor: grab;
-            transition: transform 0.1s;
+            transition: transform 0.05s linear;
             clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
             z-index: 1;
         }
@@ -53,6 +53,7 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             border: 2px solid white;
             user-select: none;
+            transition: transform 0.05s linear;
             z-index: 2;
         }
 
@@ -117,7 +118,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             databaseURL: "https://p-country-map2-default-rtdb.firebaseio.com/"
@@ -148,22 +149,20 @@
         document.getElementById('add-tank').addEventListener('click', () => addToken('TNK'));
         document.getElementById('add-air').addEventListener('click', () => addToken('AIR'));
 
-        // Логика кнопки "Ссылка для друга"
+        // Кнопка ссылки
         document.getElementById('share-btn').addEventListener('click', () => {
-            const currentUrl = window.location.href; // Берет адрес текущего сайта
+            const currentUrl = window.location.href;
             navigator.clipboard.writeText(currentUrl).then(() => {
                 const shareBtn = document.getElementById('share-btn');
                 const originalText = shareBtn.innerHTML;
-                
                 shareBtn.innerHTML = '✅ Скопировано!';
                 shareBtn.style.background = '#4CAF50';
-                
                 setTimeout(() => {
                     shareBtn.innerHTML = originalText;
                     shareBtn.style.background = '#0088cc';
                 }, 1500);
             }).catch(err => {
-                alert('Не удалось скопировать ссылку, скопируйте её из адресной строки браузера.');
+                alert('Не удалось скопировать ссылку, скопируйте её из адресной строки.');
             });
         });
 
@@ -177,16 +176,40 @@
             set(ref(db, 'tokens/' + tokenId), { type: type, top: 50, left: 50 });
         }
 
+        // Первоначальная загрузка всех уже созданных гексов и фишек при заходе на страницу
+        get(ref(db, 'hexes')).then((snapshot) => {
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    if (!document.getElementById(childSnapshot.key)) {
+                        createHexElement(childSnapshot.key, childSnapshot.val());
+                    }
+                });
+            }
+        });
+
+        get(ref(db, 'tokens')).then((snapshot) => {
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    if (!document.getElementById(childSnapshot.key)) {
+                        createTokenElement(childSnapshot.key, childSnapshot.val());
+                    }
+                });
+            }
+        });
+
+        // Слушатели реального времени для новых элементов
         onChildAdded(ref(db, 'hexes'), (snapshot) => {
             const id = snapshot.key;
-            const data = snapshot.val();
-            createHexElement(id, data);
+            if (!document.getElementById(id)) {
+                createHexElement(id, snapshot.val());
+            }
         });
 
         onChildAdded(ref(db, 'tokens'), (snapshot) => {
             const id = snapshot.key;
-            const data = snapshot.val();
-            createTokenElement(id, data);
+            if (!document.getElementById(id)) {
+                createTokenElement(id, snapshot.val());
+            }
         });
 
         function createHexElement(id, data) {
@@ -231,6 +254,7 @@
             mapContainer.appendChild(token);
         }
 
+        // Логика перемещения с мгновенной отправкой координат в базу
         function makeDraggable(element, dbPath) {
             element.onmousedown = function(event) {
                 if (event.target.className === 'delete-btn') return;
@@ -246,6 +270,7 @@
                     element.style.left = x + 'px';
                     element.style.top = y + 'px';
 
+                    // Отправляем изменения в Firebase прямо во время движения
                     update(ref(db, dbPath), { top: y, left: x });
                 };
 
@@ -258,6 +283,7 @@
             element.ondragstart = function() { return false; };
         }
 
+        // Мгновенное обновление положения у друга на экране при движении
         onChildChanged(ref(db, 'hexes'), (snapshot) => {
             const el = document.getElementById(snapshot.key);
             if (el) {
@@ -274,6 +300,7 @@
             }
         });
 
+        // Мгновенное удаление у всех игроков
         onChildRemoved(ref(db, 'hexes'), (snapshot) => {
             const el = document.getElementById(snapshot.key);
             if (el) el.remove();

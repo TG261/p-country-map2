@@ -62,38 +62,29 @@
     <div id="status-indicator">Подключение...</div>
     <div id="map-container"></div>
 
-  <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
-            authDomain: "rp-map-218d5.firebaseapp.com",
-            databaseURL: "https://rp-map-218d5-default-rtdb.firebaseio.com",
-            projectId: "rp-map-218d5",
-            storageBucket: "rp-map-218d5.firebasestorage.app",
-            messagingSenderId: "786305486724",
-            appId: "1:786305486724:web:fbc318ab0864fa821897d1"
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
+        authDomain: "rp-map-218d5.firebaseapp.com",
+        databaseURL: "https://rp-map-218d5-default-rtdb.firebaseio.com",
+        projectId: "rp-map-218d5",
+        storageBucket: "rp-map-218d5.firebasestorage.app",
+        messagingSenderId: "786305486724",
+        appId: "1:786305486724:web:fbc318ab0864fa821897d1"
+    };
 
-        try {
-            const app = initializeApp(firebaseConfig);
-            const db = getDatabase(app);
-            
-            // Проверка подключения
-            const connectedRef = ref(db, ".info/connected");
-            onValue(connectedRef, (snap) => {
-                const status = document.getElementById('status-indicator');
-                if (snap.val() === true) {
-                    status.innerText = "🟢 Подключено";
-                    status.style.color = "#4CAF50";
-                } else {
-                    status.innerText = "🔴 Ошибка соединения";
-                    status.style.color = "#f44336";
-                }
-            });
-        } catch (e) {
-            console.error("Ошибка инициализации Firebase:", e);
-            document.getElementById('status-indicator').innerText = "🔴 Ошибка инициализации";
-        }
-    </script>
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    console.log("Firebase инициализирован:", db); // Проверка в консоли
+
+    // Проверка кнопок
+    document.getElementById('add-town').addEventListener('click', () => {
+        console.log("Кнопка нажата!");
+        set(ref(db, 'test_path'), { active: true })
+            .then(() => console.log("Запись успешна"))
+            .catch((err) => console.error("Ошибка записи:", err));
+    });
+</script>

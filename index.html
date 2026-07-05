@@ -2,48 +2,67 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Мультиплеерный Штаб RP</title>
+    <title>Мультиплеерный Штаб RP — Гексы</title>
     <style>
         body { font-family: Arial, sans-serif; background: #222; color: #fff; text-align: center; margin: 0; padding: 20px; }
         .controls { margin: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; align-items: center; }
-        button { padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; }
+        
+        button { padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; display: flex; align-items: center; gap: 5px; }
         .btn-inf { background: #4CAF50; color: white; }
         .btn-tank { background: #2196F3; color: white; }
         .btn-air { background: #FFC107; color: black; }
-        .url-input { padding: 9px; border-radius: 5px; border: 1px solid #555; background: #333; color: #fff; width: 250px; }
-        .file-input-label { background: #9c27b0; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        .btn-hex { background: #795548; color: white; }
+        
         #map-container {
             position: relative;
-            width: 1000px;
-            height: 600px;
-            background: #444;
+            width: 1200px;
+            height: 700px;
+            background: #2a2a2a;
             margin: 0 auto;
-            border: 4px solid #555;
-            background-size: 100% 100%;
-            background-repeat: no-repeat;
+            border: 4px solid #444;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
         }
+
+        /* Стили гексов */
+        .hex {
+            position: absolute;
+            width: 120px;
+            height: 138px;
+            background-size: cover;
+            background-position: center;
+            cursor: move;
+            user-select: none;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            z-index: 1;
+        }
+
+        /* Обновленные стили фишек */
         .token {
             position: absolute;
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 20px;
             cursor: move;
             user-select: none;
-            font-weight: bold;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+            border: 2px solid #fff;
+            z-index: 10; /* Фишки всегда поверх карты */
         }
-        .token-inf { background: #4CAF50; }
-        .token-tank { background: #2196F3; }
-        .token-air { background: #FFC107; color: black; }
+        .token-inf { background: #2e7d32; }
+        .token-tank { background: #1565c0; }
+        .token-air { background: #f9a825; }
+
         .delete-btn {
             position: absolute;
-            top: -5px;
-            right: -5px;
+            top: -2px;
+            right: -2px;
             background: red;
             color: white;
             border-radius: 50%;
@@ -54,25 +73,28 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            border: 1px solid white;
+            z-index: 11;
         }
     </style>
 </head>
 <body>
 
     <h1>Мультиплеерный Штаб RP</h1>
-    <p>Все изменения карты и фишек видны обоим игрокам в реальном времени!</p>
+    <p>Конструктор карты гексами и фишки с эмодзи в реальном времени!</p>
     
     <div class="controls">
-        <button class="btn-inf" onclick="addToken('INF')">+ Пехота</button>
-        <button class="btn-tank" onclick="addToken('TNK')">+ Танк</button>
-        <button class="btn-air" onclick="addToken('AIR')">+ Авиация</button>
+        <!-- Кнопки ландшафта -->
+        <button class="btn-hex" onclick="addHex('town')">🏰 + Гекс Город</button>
+        <button class="btn-hex" onclick="addHex('field')">🌱 + Гекс Поле</button>
+        <button class="btn-hex" onclick="addHex('forest')">🌲 + Гекс Лес</button>
         
-        <label class="file-input-label">
-            🗺️ Загрузить файл
-            <input type="file" accept="image/*" style="display: none;" onchange="loadMapFromFile(this)">
-        </label>
+        <span>|</span>
 
-        <input type="text" id="map-url-field" class="url-input" placeholder="Или вставь URL карты для всех..." oninput="sendMapUrl(this.value)">
+        <!-- Кнопки юнитов -->
+        <button class="btn-inf" onclick="addToken('INF')">🏃‍♂️ + Пехота</button>
+        <button class="btn-tank" onclick="addToken('TNK')">🚜 + Техника</button>
+        <button class="btn-air" onclick="addToken('AIR')">✈ + Авиация</button>
     </div>
 
     <div id="map-container"></div>
@@ -81,7 +103,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // Твоя конфигурация из Firebase со скриншота image_a07b83.jpg
+        // Твоя конфигурация из Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyCwSFk9zwr-qldxlVRrjyJNXNz9TJ0_LgA",
             authDomain: "rp-map-218d5.firebaseapp.com",
@@ -96,91 +118,95 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const map = document.getElementById('map-container');
-        const urlField = document.getElementById('map-url-field');
 
-        // Слушаем изменения карты в реальном времени
-        onValue(ref(db, 'currentMap'), (snapshot) => {
-            const mapData = snapshot.val();
-            if (mapData) {
-                map.style.backgroundImage = `url("${mapData}")`;
-                if(mapData.startsWith('http')) {
-                    urlField.value = mapData;
-                }
-            } else {
-                map.style.backgroundImage = 'none';
+        // Ссылки на изображения гексов
+        const hexImages = {
+            town: 'Gemini_Generated_Image_l1rwmbl1rwmbl1rw-Photoroom.jpg',
+            field: 'Gemini_Generated_Image_tw1eqltw1eqltw1e-Photoroom.jpg',
+            forest: 'Gemini_Generated_Image_r7cns8r7cns8r7cn-Photoroom.jpg'
+        };
+
+        const emojiMap = { INF: '🏃‍♂️', TNK: '🚜', AIR: '✈' };
+
+        // --- СИНХРОНИЗАЦИЯ В РЕАЛЬНОМ ВРЕМЕНИ ---
+
+        // 1. Слушаем гексы
+        onValue(ref(db, 'hexes'), (snapshot) => {
+            document.querySelectorAll('.hex').forEach(el => el.remove());
+            const hexes = snapshot.val();
+            if (hexes) {
+                for (let id in hexes) { renderHexElement(id, hexes[id]); }
             }
         });
 
-        // Слушаем изменения фишек в реальном времени
+        // 2. Слушаем фишки
         onValue(ref(db, 'tokens'), (snapshot) => {
             document.querySelectorAll('.token').forEach(el => el.remove());
             const tokens = snapshot.val();
             if (tokens) {
-                for (let id in tokens) {
-                    renderTokenElement(id, tokens[id]);
-                }
+                for (let id in tokens) { renderTokenElement(id, tokens[id]); }
             }
         });
 
-        window.loadMapFromFile = function(input) {
-            const file = input.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                set(ref(db, 'currentMap'), e.target.result);
-            };
-            reader.readAsDataURL(file);
-        }
+        // --- ДОБАВЛЕНИЕ ОБЪЕКТОВ ---
 
-        window.sendMapUrl = function(url) {
-            set(ref(db, 'currentMap'), url.trim());
+        window.addHex = function(type) {
+            const hexId = 'hex_' + Math.random().toString(36).substr(2, 9);
+            set(ref(db, 'hexes/' + hexId), { type: type, top: 100, left: 100 });
         }
 
         window.addToken = function(type) {
             const tokenId = 'token_' + Math.random().toString(36).substr(2, 9);
-            set(ref(db, 'tokens/' + tokenId), {
-                type: type,
-                top: 50,
-                left: 50
-            });
+            set(ref(db, 'tokens/' + tokenId), { type: type, top: 50, left: 50 });
+        }
+
+        // --- ОТРИСОВКА И ПЕРЕТАСКИВАНИЕ ---
+
+        function renderHexElement(id, data) {
+            const hex = document.createElement('div');
+            hex.className = 'hex';
+            hex.style.backgroundImage = `url('${hexImages[data.type]}')`;
+            hex.style.top = data.top + 'px';
+            hex.style.left = data.left + 'px';
+
+            setupDrag(hex, 'hexes/' + id, 120, 138);
+            setupDelete(hex, 'hexes/' + id);
+            map.appendChild(hex);
         }
 
         function renderTokenElement(id, data) {
             const token = document.createElement('div');
             token.className = 'token token-' + data.type.toLowerCase();
-            token.innerText = data.type;
+            token.innerText = emojiMap[data.type] || data.type;
             token.style.top = data.top + 'px';
             token.style.left = data.left + 'px';
 
-            const del = document.createElement('div');
-            del.className = 'delete-btn';
-            del.innerText = 'X';
-            del.onclick = function(e) {
-                e.stopPropagation();
-                remove(ref(db, 'tokens/' + id));
-            };
-            token.appendChild(del);
+            setupDrag(token, 'tokens/' + id, 45, 45);
+            setupDelete(token, 'tokens/' + id);
+            map.appendChild(token);
+        }
 
-            token.onmousedown = function(e) {
+        // Общая логика перемещения для фишек и гексов
+        function setupDrag(element, dbPath, width, height) {
+            element.onmousedown = function(e) {
+                if (e.target.className === 'delete-btn') return;
                 e.preventDefault();
-                let shiftX = e.clientX - token.getBoundingClientRect().left;
-                let shiftY = e.clientY - token.getBoundingClientRect().top;
+                
+                let shiftX = e.clientX - element.getBoundingClientRect().left;
+                let shiftY = e.clientY - element.getBoundingClientRect().top;
 
                 function moveAt(clientX, clientY) {
                     let rect = map.getBoundingClientRect();
                     let left = clientX - rect.left - shiftX;
                     let top = clientY - rect.top - shiftY;
 
-                    left = Math.max(0, Math.min(left, rect.width - 40));
-                    top = Math.max(0, Math.min(top, rect.height - 40));
+                    left = Math.max(0, Math.min(left, rect.width - width));
+                    top = Math.max(0, Math.min(top, rect.height - height));
 
-                    token.style.left = left + 'px';
-                    token.style.top = top + 'px';
+                    element.style.left = left + 'px';
+                    element.style.top = top + 'px';
 
-                    update(ref(db, 'tokens/' + id), {
-                        left: left,
-                        top: top
-                    });
+                    update(ref(db, dbPath), { left: left, top: top });
                 }
 
                 function onMouseMove(e) { moveAt(e.clientX, e.clientY); }
@@ -191,8 +217,18 @@
                     document.onmouseup = null;
                 };
             };
+        }
 
-            map.appendChild(token);
+        // Общая логика удаления
+        function setupDelete(element, dbPath) {
+            const del = document.createElement('div');
+            del.className = 'delete-btn';
+            del.innerText = 'X';
+            del.onclick = function(e) {
+                e.stopPropagation();
+                remove(ref(db, dbPath));
+            };
+            element.appendChild(del);
         }
     </script>
 </body>

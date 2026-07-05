@@ -18,11 +18,13 @@
         .token-inf { background: #2e7d32; }
         .token-tnk { background: #d32f2f; }
         .token-air { background: #f9a825; }
+        
         .delete-btn { position: absolute; top: -5px; right: -5px; background: #ff3b30; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9999; }
+        /* Кнопка карандаша */
+        .edit-btn { position: absolute; top: 25px; right: -5px; background: #2196F3; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9999; }
     </style>
 </head>
 <body>
-
     <h1>Система управления картой</h1>
     <div class="controls">
         <button class="btn-hex" id="add-town">🏰 + Город</button>
@@ -32,13 +34,10 @@
         <button class="btn-tank" id="add-tank">🚜 + Техника</button>
         <button class="btn-air" id="add-air">✈️ + Авиация</button>
     </div>
-
     <div id="map-container"></div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
         const firebaseConfig = {
             apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
             authDomain: "rp-map-218d5.firebaseapp.com",
@@ -48,11 +47,9 @@
             messagingSenderId: "786305486724",
             appId: "1:786305486724:web:fbc318ab0864fa821897d1"
         };
-
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const mapContainer = document.getElementById('map-container');
-
         const hexImages = { town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png' };
         const tokenIcons = { INF: '🏃', TNK: '🚜', AIR: '✈️' };
 
@@ -63,14 +60,30 @@
             el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
             if (type === 'hex') el.style.backgroundImage = `url('${hexImages[data.type]}')`;
             else el.innerText = tokenIcons[data.type];
-
+            
+            // Кнопка удаления
             const del = document.createElement('button');
             del.className = 'delete-btn'; del.innerText = 'X';
             del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
             el.appendChild(del);
 
+            // Кнопка карандаша (только для токенов)
+            if (type === 'token') {
+                const edit = document.createElement('button');
+                edit.className = 'edit-btn'; edit.innerText = '✎';
+                edit.onclick = (e) => { 
+                    e.stopPropagation(); 
+                    const newInfo = prompt("Введите характеристики фишки:", data.info || "");
+                    if (newInfo !== null) {
+                        update(ref(db, 'tokens/' + id), { info: newInfo });
+                    }
+                };
+                el.appendChild(edit);
+                if (data.info) el.title = data.info; // Показывает инфо при наведении
+            }
+
             el.onmousedown = (e) => {
-                if (e.target.className === 'delete-btn') return;
+                if (e.target.className === 'delete-btn' || e.target.className === 'edit-btn') return;
                 let shiftX = e.clientX - el.getBoundingClientRect().left;
                 let shiftY = e.clientY - el.getBoundingClientRect().top;
                 document.onmousemove = (e) => {
@@ -87,16 +100,16 @@
         onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
         onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
         onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
-        onChildChanged(ref(db, 'tokens'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
+        onChildChanged(ref(db, 'tokens'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; el.title = s.val().info || ""; }});
         onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
         onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());
-
+        
         document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'town', top: 150, left: 150 });
         document.getElementById('add-field').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'field', top: 150, left: 150 });
         document.getElementById('add-forest').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'forest', top: 150, left: 150 });
-        document.getElementById('add-inf').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'INF', top: 50, left: 50 });
-        document.getElementById('add-tank').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'TNK', top: 50, left: 50 });
-        document.getElementById('add-air').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'AIR', top: 50, left: 50 });
+        document.getElementById('add-inf').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'INF', top: 50, left: 50, info: "Новая пехота" });
+        document.getElementById('add-tank').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'TNK', top: 50, left: 50, info: "Новая техника" });
+        document.getElementById('add-air').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'AIR', top: 50, left: 50, info: "Новая авиация" });
     </script>
 </body>
 </html>

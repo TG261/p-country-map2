@@ -118,17 +118,39 @@
             mapContainer.appendChild(el);
         }
 
-        onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
-        onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
-        
-        onChildChanged(ref(db, 'tokens'), (s) => {
-            const data = s.val();
-            const el = document.getElementById(s.key); 
-            if(el) { el.style.top = data.top + 'px'; el.style.left = data.left + 'px'; }
-            if (activeTokenId === s.key && cardPopup.style.display === 'block' && document.activeElement !== popupTextarea) {
-                popupTextarea.value = data.info || "";
-            }
-        });
+    onChildChanged(ref(db, 'tokens'), (s) => {
+    const data = s.val();
+    const el = document.getElementById(s.key);
+    
+    // Обновляем визуальную позицию
+    if(el) { 
+        el.style.top = data.top + 'px'; 
+        el.style.left = data.left + 'px'; 
+    }
+
+    // Если этот токен сейчас открыт в карточке, обновляем текст, 
+    // НО только если пользователь не печатает в данный момент
+    if (activeTokenId === s.key && cardPopup.style.display === 'block') {
+        if (document.activeElement !== popupTextarea) {
+            popupTextarea.value = data.info || "";
+        }
+    }
+    
+    // ВАЖНО: обновляем данные внутри самой функции renderElement, 
+    // чтобы при следующем клике на "редактировать" подтягивались свежие данные
+    const tokenEl = document.getElementById(s.key);
+    if (tokenEl) {
+        // Мы перепривязываем событие клика, чтобы оно "видело" новые данные
+        tokenEl.querySelector('.edit-btn').onclick = (e) => {
+            e.stopPropagation();
+            activeTokenId = s.key;
+            cardPopup.style.display = 'block';
+            cardPopup.style.left = (e.clientX + 15) + 'px';
+            cardPopup.style.top = (e.clientY + 15) + 'px';
+            popupTextarea.value = data.info || "";
+        };
+    }
+});
         onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
         onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
         onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());

@@ -22,7 +22,7 @@
         .token .edit-btn { top: 25px; right: -8px; background: #2196F3; }
         .hex .delete-btn { background: #ff3b30; display: none; z-index: 2; }
         .hex:hover .delete-btn { display: flex; }
-
+        
         #card-popup { display: none; position: fixed; background: #e6c2b8; border: 2px solid #000; padding: 15px; z-index: 10000; border-radius: 2px; color: black; width: 200px; text-align: left; box-shadow: 5px 5px 10px rgba(0,0,0,0.5); }
         #popup-textarea { width: 100%; height: 100px; background: transparent; border: 1px solid #000; resize: none; font-family: Arial, sans-serif; white-space: pre-wrap; margin-top: 5px; }
     </style>
@@ -38,12 +38,10 @@
         <button class="btn-air" id="add-air">✈️ + Авиация</button>
     </div>
     <div id="map-container"></div>
-
     <div id="card-popup" onmouseleave="this.style.display='none'">
         <div style="font-weight: bold; border-bottom: 1px solid #000; margin-bottom: 5px;">КАРТОЧКА</div>
         <textarea id="popup-textarea"></textarea>
     </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -63,6 +61,7 @@
         const popupTextarea = document.getElementById('popup-textarea');
         let activeTokenId = null;
 
+        // Мгновенное сохранение при вводе[cite: 2]
         popupTextarea.oninput = () => {
             if (activeTokenId) update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
         };
@@ -82,37 +81,18 @@
             del.className = 'delete-btn'; del.innerText = 'X';
             del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
             el.appendChild(del);
-
-function renderElement(id, data, type) {
-            const el = document.createElement('div');
-            el.className = type === 'hex' ? 'hex' : `token token-${data.type.toLowerCase()}`;
-            el.id = id;
-            el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
-            if (type === 'hex') el.style.backgroundImage = `url('${hexImages[data.type]}')`;
-            else el.innerText = tokenIcons[data.type];
-            
-            const del = document.createElement('button');
-            del.className = 'delete-btn'; del.innerText = 'X';
-            del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
-            el.appendChild(del);
-
             if (type === 'token') {
                 const edit = document.createElement('button');
                 edit.className = 'edit-btn'; edit.innerText = '✎';
-                
                 edit.onmouseenter = (e) => {
                     activeTokenId = id;
                     cardPopup.style.display = 'block';
                     cardPopup.style.left = (e.clientX + 15) + 'px';
                     cardPopup.style.top = (e.clientY + 15) + 'px';
-                    
-                    // Каждый раз берем данные из текущего состояния объекта (data)
-                    // или обновляем их, если они изменились в базе
                     popupTextarea.value = data.info || "";
                 };
                 el.appendChild(edit);
             }
-            
             el.onmousedown = (e) => {
                 if (e.target.className === 'delete-btn' || e.target.className === 'edit-btn') return;
                 let shiftX = e.clientX - el.getBoundingClientRect().left;
@@ -132,15 +112,12 @@ function renderElement(id, data, type) {
         onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
         
         onChildChanged(ref(db, 'tokens'), (s) => {
-            const data = s.val();
-            // ОБНОВЛЕНИЕ ТЕКСТА В РЕАЛЬНОМ ВРЕМЕНИ
-            if (activeTokenId === s.key && cardPopup.style.display === 'block') {
-                if (document.activeElement !== popupTextarea) {
-                    popupTextarea.value = data.info || "";
-                }
+            // Живое обновление карточки, если данные изменились[cite: 2]
+            if (activeTokenId === s.key && cardPopup.style.display === 'block' && document.activeElement !== popupTextarea) {
+                popupTextarea.value = s.val().info || "";
             }
-            const el = document.getElementById(s.key);
-            if(el) { el.style.top = data.top + 'px'; el.style.left = data.left + 'px'; }
+            const el = document.getElementById(s.key); 
+            if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }
         });
 
         onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});

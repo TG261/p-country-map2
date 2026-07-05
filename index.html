@@ -125,6 +125,17 @@
         document.getElementById('add-inf').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'INF', top: 50, left: 50, info: "Пехота" });
         document.getElementById('add-tank').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'TNK', top: 50, left: 50, info: "Техника" });
         document.getElementById('add-air').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'AIR', top: 50, left: 50, info: "Авиация" });
+        // Добавьте этот слушатель в конец вашего скрипта
+onChildChanged(ref(db, 'tokens'), (s) => {
+    // Если id измененного токена совпадает с тем, что сейчас активно в карточке
+    if (activeTokenId === s.key && cardPopup.style.display === 'block') {
+        const newData = s.val();
+        // Обновляем текст в textarea, только если пользователь не вводит текст в этот момент
+        if (document.activeElement !== popupTextarea) {
+            popupTextarea.value = newData.info || "";
+        }
+    }
+});
     </script>
 </body>
 </html>

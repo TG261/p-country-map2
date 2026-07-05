@@ -9,7 +9,7 @@
         
         button { padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; display: flex; align-items: center; gap: 5px; }
         .btn-inf { background: #4CAF50; color: white; }
-        .btn-tank { background: #2196F3; color: white; }
+        .btn-tank { background: #d32f2f; color: white; } /* Красный цвет для техники */
         .btn-air { background: #FFC107; color: black; }
         
         .btn-hex { background: #795548; color: white; }
@@ -53,10 +53,10 @@
             user-select: none;
             box-shadow: 0 4px 8px rgba(0,0,0,0.6);
             border: 2px solid #fff;
-            z-index: 10; /* Фишки всегда поверх карты */
+            z-index: 10;
         }
         .token-inf { background: #2e7d32; }
-        .token-tank { background: #1565c0; }
+        .token-tank { background: #d32f2f; } /* Красный фон жетона техники */
         .token-air { background: #f9a825; }
 
         .delete-btn {
@@ -74,27 +74,26 @@
             align-items: center;
             justify-content: center;
             border: 1px solid white;
-            z-index: 11;
+            z-index: 100;
         }
     </style>
 </head>
 <body>
 
     <h1>Мультиплеерный Штаб RP</h1>
-    <p>Конструктор карты гексами и фишки с эмодзи в реальном времени!</p>
     
     <div class="controls">
         <!-- Кнопки ландшафта -->
-        <button class="btn-hex" onclick="addHex('town')">🏰 + Гекс Город</button>
-        <button class="btn-hex" onclick="addHex('field')">🌱 + Гекс Поле</button>
-        <button class="btn-hex" onclick="addHex('forest')">🌲 + Гекс Лес</button>
+        <button class="btn-hex" onclick="window.addHex('town')">🏰 + Гекс Город</button>
+        <button class="btn-hex" onclick="window.addHex('field')">🌱 + Гекс Поле</button>
+        <button class="btn-hex" onclick="window.addHex('forest')">🌲 + Гекс Лес</button>
         
         <span>|</span>
 
         <!-- Кнопки юнитов -->
-        <button class="btn-inf" onclick="addToken('INF')">🏃‍♂️ + Пехота</button>
-        <button class="btn-tank" onclick="addToken('TNK')">🚜 + Техника</button>
-        <button class="btn-air" onclick="addToken('AIR')">✈ + Авиация</button>
+        <button class="btn-inf" onclick="window.addToken('INF')">🏃‍♂️ + Пехота</button>
+        <button class="btn-tank" onclick="window.addToken('TNK')">🚜 + Техника</button>
+        <button class="btn-air" onclick="window.addToken('AIR')">✈ + Авиация</button>
     </div>
 
     <div id="map-container"></div>
@@ -128,9 +127,8 @@
 
         const emojiMap = { INF: '🏃‍♂️', TNK: '🚜', AIR: '✈' };
 
-        // --- СИНХРОНИЗАЦИЯ В РЕАЛЬНОМ ВРЕМЕНИ ---
+        // --- РЕНДЕРИНГ И СИНХРОНИЗАЦИЯ С FIREBASE ---
 
-        // 1. Слушаем гексы
         onValue(ref(db, 'hexes'), (snapshot) => {
             document.querySelectorAll('.hex').forEach(el => el.remove());
             const hexes = snapshot.val();
@@ -139,7 +137,6 @@
             }
         });
 
-        // 2. Слушаем фишки
         onValue(ref(db, 'tokens'), (snapshot) => {
             document.querySelectorAll('.token').forEach(el => el.remove());
             const tokens = snapshot.val();
@@ -148,19 +145,16 @@
             }
         });
 
-        // --- ДОБАВЛЕНИЕ ОБЪЕКТОВ ---
-
+        // Глобальные функции для кнопок (привязаны к окну, чтобы HTML их видел)
         window.addHex = function(type) {
             const hexId = 'hex_' + Math.random().toString(36).substr(2, 9);
-            set(ref(db, 'hexes/' + hexId), { type: type, top: 100, left: 100 });
+            set(ref(db, 'hexes/' + hexId), { type: type, top: 150, left: 150 });
         }
 
         window.addToken = function(type) {
             const tokenId = 'token_' + Math.random().toString(36).substr(2, 9);
             set(ref(db, 'tokens/' + tokenId), { type: type, top: 50, left: 50 });
         }
-
-        // --- ОТРИСОВКА И ПЕРЕТАСКИВАНИЕ ---
 
         function renderHexElement(id, data) {
             const hex = document.createElement('div');
@@ -186,7 +180,6 @@
             map.appendChild(token);
         }
 
-        // Общая логика перемещения для фишек и гексов
         function setupDrag(element, dbPath, width, height) {
             element.onmousedown = function(e) {
                 if (e.target.className === 'delete-btn') return;
@@ -219,7 +212,6 @@
             };
         }
 
-        // Общая логика удаления
         function setupDelete(element, dbPath) {
             const del = document.createElement('div');
             del.className = 'delete-btn';

@@ -23,8 +23,9 @@
         .hex .delete-btn { background: #ff3b30; display: none; z-index: 2; }
         .hex:hover .delete-btn { display: flex; }
 
-        /* Стиль карточки как на image_4653e3.jpg */
+        /* Стиль карточки с поддержкой абзацев */
         #card-popup { display: none; position: fixed; background: #e6c2b8; border: 2px solid #000; padding: 15px; z-index: 10000; pointer-events: none; border-radius: 2px; color: black; width: 150px; text-align: left; box-shadow: 5px 5px 10px rgba(0,0,0,0.5); }
+        #popup-content { white-space: pre-wrap; word-wrap: break-word; font-weight: normal; }
     </style>
 </head>
 <body>
@@ -39,10 +40,9 @@
     </div>
     <div id="map-container"></div>
 
-    <!-- Элемент карточки -->
     <div id="card-popup">
         <div style="font-weight: bold; border-bottom: 1px solid #000; margin-bottom: 10px;">КАРТОЧКА</div>
-        <div id="popup-content">Редактировать (написать текст)</div>
+        <div id="popup-content"></div>
     </div>
 
     <script type="module">
@@ -92,7 +92,7 @@
                 edit.onmouseleave = () => { cardPopup.style.display = 'none'; };
                 edit.onclick = (e) => { 
                     e.stopPropagation(); 
-                    const newInfo = prompt("Введите информацию о фишке:", data.info || "");
+                    const newInfo = prompt("Введите информацию (используйте Enter для абзацев):", data.info || "");
                     if (newInfo !== null) update(ref(db, 'tokens/' + id), { info: newInfo });
                 };
                 el.appendChild(edit);
@@ -121,6 +121,8 @@
         onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());
         
         document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'town', top: 150, left: 150 });
+        document.getElementById('add-field').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'field', top: 150, left: 150 });
+        document.getElementById('add-forest').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'forest', top: 150, left: 150 });
         document.getElementById('add-inf').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'INF', top: 50, left: 50, info: "Пехота" });
         document.getElementById('add-tank').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'TNK', top: 50, left: 50, info: "Техника" });
         document.getElementById('add-air').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'AIR', top: 50, left: 50, info: "Авиация" });

@@ -61,7 +61,6 @@
         const popupTextarea = document.getElementById('popup-textarea');
         let activeTokenId = null;
 
-        // Мгновенное сохранение при вводе[cite: 2]
         popupTextarea.oninput = () => {
             if (activeTokenId) update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
         };
@@ -71,7 +70,10 @@
 
         function renderElement(id, data, type) {
             const el = document.createElement('div');
-            el.className = type === 'hex' ? 'hex' : `token token-${data.type.toLowerCase()}`;
+            // Безопасная проверка наличия типа для исключения ошибки toLowerCase()
+            const typeValue = data.type ? data.type.toLowerCase() : 'default';
+            el.className = type === 'hex' ? 'hex' : `token token-${typeValue}`;
+            
             el.id = id;
             el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
             if (type === 'hex') el.style.backgroundImage = `url('${hexImages[data.type]}')`;
@@ -112,7 +114,6 @@
         onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
         
         onChildChanged(ref(db, 'tokens'), (s) => {
-            // Живое обновление карточки, если данные изменились[cite: 2]
             if (activeTokenId === s.key && cardPopup.style.display === 'block' && document.activeElement !== popupTextarea) {
                 popupTextarea.value = s.val().info || "";
             }

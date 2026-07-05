@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Мультиплеерный Штаб RP — Гексы</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление картой</title>
     <style>
         body { font-family: Arial, sans-serif; background: #222; color: #fff; text-align: center; margin: 0; padding: 20px; }
         .controls { margin: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; align-items: center; }
@@ -11,29 +12,29 @@
         .btn-inf { background: #4CAF50; color: white; }
         .btn-tank { background: #d32f2f; color: white; }
         .btn-air { background: #FFC107; color: black; }
-        
         .btn-hex { background: #795548; color: white; }
         
+        span { color: #888; font-weight: bold; margin: 0 10px; }
+
         #map-container {
             position: relative;
-            width: 1200px;
-            height: 700px;
-            background: #2a2a2a;
-            margin: 0 auto;
-            border: 4px solid #444;
+            width: 1000px;
+            height: 600px;
+            background: #333;
+            border: 2px solid #555;
+            margin: 20px auto;
             overflow: hidden;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            border-radius: 10px;
         }
 
-        /* Стили гексов */
         .hex {
             position: absolute;
-            width: 120px;
-            height: 138px;
+            width: 100px;
+            height: 115.47px;
             background-size: cover;
             background-position: center;
-            cursor: move;
-            user-select: none;
+            cursor: grab;
+            transition: transform 0.1s;
             clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
             z-index: 1;
         }
@@ -44,106 +45,90 @@
             width: 45px;
             height: 45px;
             border-radius: 50%;
-            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 20px;
-            cursor: move;
+            cursor: grab;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 2px solid white;
             user-select: none;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.6);
-            border: 2px solid #fff;
-            z-index: 10;
+            z-index: 2;
         }
+
         .token-inf { background: #2e7d32 !important; }
-        .token-tnk { background: #d32f2f !important; } /* Исправлен регистр для корректного отображения */
+        .token-tnk { background: #d32f2f !important; /* Исправлен регистр для корректного отображения */ }
         .token-air { background: #f9a825 !important; }
 
         .delete-btn {
             position: absolute;
-            top: -2px;
-            right: -2px;
+            top: -10px;
+            right: -10px;
             background: red;
             color: white;
+            border: none;
             border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            font-size: 10px;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
             cursor: pointer;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
-            border: 1px solid white;
-            z-index: 100;
+            z-index: 10;
+        }
+
+        .hex:hover .delete-btn, .token:hover .delete-btn {
+            display: flex;
         }
     </style>
 </head>
 <body>
 
-    <h1>Мультиплеерный Штаб RP</h1>
-    
+    <h1>Система управления картой</h1>
+
     <div class="controls">
         <!-- Кнопки ландшафта -->
         <button class="btn-hex" id="add-town">🏰 + Гекс Город</button>
         <button class="btn-hex" id="add-field">🌱 + Гекс Поле</button>
         <button class="btn-hex" id="add-forest">🌲 + Гекс Лес</button>
-        
+
         <span>|</span>
 
         <!-- Кнопки юнитов -->
-        <button class="btn-inf" id="add-inf">🏃‍♂️ + Пехота</button>
+        <button class="btn-inf" id="add-inf">🏃 + Пехота</button>
         <button class="btn-tank" id="add-tank">🚜 + Техника</button>
-        <button class="btn-air" id="add-air">✈ + Авиация</button>
+        <button class="btn-air" id="add-air">✈️ + Авиация</button>
     </div>
 
     <div id="map-container"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // Твоя конфигурация из Firebase
+        // Твоя конфигурация Firebase
         const firebaseConfig = {
-            apiKey: "AIzaSyCwSFk9zwr-qldxlVRrjyJNXNz9TJ0_LgA",
-            authDomain: "rp-map-218d5.firebaseapp.com",
-            databaseURL: "https://rp-map-218d5-default-rtdb.firebaseio.com",
-            projectId: "rp-map-218d5",
-            storageBucket: "rp-map-218d5.appspot.com",
-            messagingSenderId: "786305486724",
-            appId: "1:786305486724:web:fbc318ab0864fa821897d1",
-            measurementId: "G-VM0FCZX9D8"
+            databaseURL: "https://p-country-map2-default-rtdb.firebaseio.com/"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const map = document.getElementById('map-container');
+        const mapContainer = document.getElementById('map-container');
 
-        // Ссылки на изображения гексов
+        // Ссылки на изображения гексов в папке assets
         const hexImages = {
-            town: 'Gemini_Generated_Image_l1rwmbl1rwmbl1rw-Photoroom.jpg',
-            field: 'Gemini_Generated_Image_tw1eqltw1eqltw1e-Photoroom.jpg',
-            forest: 'Gemini_Generated_Image_r7cns8r7cns8r7cn-Photoroom.jpg'
+            town: 'assets/Город.png',
+            field: 'assets/Равнина.png',
+            forest: 'assets/Лес.png'
         };
 
-        const emojiMap = { INF: '🏃‍♂️', TNK: '🚜', AIR: '✈' };
-
-        // --- РЕНДЕРИНГ И СИНХРОНИЗАЦИЯ С FIREBASE ---
-
-        onValue(ref(db, 'hexes'), (snapshot) => {
-            document.querySelectorAll('.hex').forEach(el => el.remove());
-            const hexes = snapshot.val();
-            if (hexes) {
-                for (let id in hexes) { renderHexElement(id, hexes[id]); }
-            }
-        });
-
-        onValue(ref(db, 'tokens'), (snapshot) => {
-            document.querySelectorAll('.token').forEach(el => el.remove());
-            const tokens = snapshot.val();
-            if (tokens) {
-                for (let id in tokens) { renderTokenElement(id, tokens[id]); }
-            }
-        });
+        // Иконки для фишек
+        const tokenIcons = {
+            INF: '🏃',
+            TNK: '🚜',
+            AIR: '✈️'
+        };
 
         // Назначение обработчиков клика внутри модуля
         document.getElementById('add-town').addEventListener('click', () => addHex('town'));
@@ -164,72 +149,118 @@
             set(ref(db, 'tokens/' + tokenId), { type: type, top: 50, left: 50 });
         }
 
-        function renderHexElement(id, data) {
+        // Рендеринг гексов из Firebase
+        onChildAdded(ref(db, 'hexes'), (snapshot) => {
+            const id = snapshot.key;
+            const data = snapshot.val();
+            createHexElement(id, data);
+        });
+
+        // Рендеринг фишек из Firebase
+        onChildAdded(ref(db, 'tokens'), (snapshot) => {
+            const id = snapshot.key;
+            const data = snapshot.val();
+            createTokenElement(id, data);
+        });
+
+        function createHexElement(id, data) {
             const hex = document.createElement('div');
             hex.className = 'hex';
-            hex.style.backgroundImage = `url('${hexImages[data.type]}')`;
+            hex.id = id;
             hex.style.top = data.top + 'px';
             hex.style.left = data.left + 'px';
+            hex.style.backgroundImage = `url('${hexImages[data.type]}')`;
 
-            setupDrag(hex, 'hexes/' + id, 120, 138);
-            setupDelete(hex, 'hexes/' + id);
-            map.appendChild(hex);
+            const delBtn = document.createElement('button');
+            delBtn.className = 'delete-btn';
+            delBtn.innerText = 'X';
+            delBtn.onclick = (e) => {
+                e.stopPropagation();
+                remove(ref(db, 'hexes/' + id));
+            };
+            hex.appendChild(delBtn);
+
+            makeDraggable(hex, 'hexes/' + id);
+            mapContainer.appendChild(hex);
         }
 
-        function renderTokenElement(id, data) {
+        function createTokenElement(id, data) {
             const token = document.createElement('div');
-            token.className = 'token token-' + data.type.toLowerCase();
-            token.innerText = emojiMap[data.type] || data.type;
+            token.className = `token token-${data.type.toLowerCase()}`;
+            token.id = id;
             token.style.top = data.top + 'px';
             token.style.left = data.left + 'px';
+            token.innerText = tokenIcons[data.type];
 
-            setupDrag(token, 'tokens/' + id, 45, 45);
-            setupDelete(token, 'tokens/' + id);
-            map.appendChild(token);
+            const delBtn = document.createElement('button');
+            delBtn.className = 'delete-btn';
+            delBtn.innerText = 'X';
+            delBtn.onclick = (e) => {
+                e.stopPropagation();
+                remove(ref(db, 'tokens/' + id));
+            };
+            token.appendChild(delBtn);
+
+            makeDraggable(token, 'tokens/' + id);
+            mapContainer.appendChild(token);
         }
 
-        function setupDrag(element, dbPath, width, height) {
-            element.onmousedown = function(e) {
-                if (e.target.className === 'delete-btn') return;
-                e.preventDefault();
-                
-                let shiftX = e.clientX - element.getBoundingClientRect().left;
-                let shiftY = e.clientY - element.getBoundingClientRect().top;
+        // Логика перетаскивания (Drag & Drop)
+        function makeDraggable(element, dbPath) {
+            element.onmousedown = function(event) {
+                if (event.target.className === 'delete-btn') return;
 
-                function moveAt(clientX, clientY) {
-                    let rect = map.getBoundingClientRect();
-                    let left = clientX - rect.left - shiftX;
-                    let top = clientY - rect.top - shiftY;
+                event.preventDefault();
+                let shiftX = event.clientX - element.getBoundingClientRect().left;
+                let shiftY = event.clientY - element.getBoundingClientRect().top;
 
-                    left = Math.max(0, Math.min(left, rect.width - width));
-                    top = Math.max(0, Math.min(top, rect.height - height));
+                document.onmousemove = function(event) {
+                    let x = event.clientX - mapContainer.getBoundingClientRect().left - shiftX;
+                    let y = event.clientY - mapContainer.getBoundingClientRect().top - shiftY;
 
-                    element.style.left = left + 'px';
-                    element.style.top = top + 'px';
+                    element.style.left = x + 'px';
+                    element.style.top = y + 'px';
 
-                    update(ref(db, dbPath), { left: left, top: top });
-                }
-
-                function onMouseMove(e) { moveAt(e.clientX, e.clientY); }
-                document.addEventListener('mousemove', onMouseMove);
+                    update(ref(db, dbPath), { top: y, left: x });
+                };
 
                 document.onmouseup = function() {
-                    document.removeEventListener('mousemove', onMouseMove);
+                    document.onmousemove = null;
                     document.onmouseup = null;
                 };
             };
+
+            element.ondragstart = function() { return false; };
         }
 
-        function setupDelete(element, dbPath) {
-            const del = document.createElement('div');
-            del.className = 'delete-btn';
-            del.innerText = 'X';
-            del.onclick = function(e) {
-                e.stopPropagation();
-                remove(ref(db, dbPath));
-            };
-            element.appendChild(del);
-        }
+        // Синхронизация изменений перемещения
+        onChildChanged(ref(db, 'hexes'), (snapshot) => {
+            const el = document.getElementById(snapshot.key);
+            if (el) {
+                el.style.top = snapshot.val().top + 'px';
+                el.style.left = snapshot.val().left + 'px';
+            }
+        });
+
+        onChildChanged(ref(db, 'tokens'), (snapshot) => {
+            const el = document.getElementById(snapshot.key);
+            if (el) {
+                el.style.top = snapshot.val().top + 'px';
+                el.style.left = snapshot.val().left + 'px';
+            }
+        });
+
+        // Синхронизация удаления
+        onChildRemoved(ref(db, 'hexes'), (snapshot) => {
+            const el = document.getElementById(snapshot.key);
+            if (el) el.remove();
+        });
+
+        onChildRemoved(ref(db, 'tokens'), (snapshot) => {
+            const el = document.getElementById(snapshot.key);
+            if (el) el.remove();
+        });
     </script>
+
 </body>
 </html>

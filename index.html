@@ -83,14 +83,31 @@
             del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
             el.appendChild(del);
 
+function renderElement(id, data, type) {
+            const el = document.createElement('div');
+            el.className = type === 'hex' ? 'hex' : `token token-${data.type.toLowerCase()}`;
+            el.id = id;
+            el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
+            if (type === 'hex') el.style.backgroundImage = `url('${hexImages[data.type]}')`;
+            else el.innerText = tokenIcons[data.type];
+            
+            const del = document.createElement('button');
+            del.className = 'delete-btn'; del.innerText = 'X';
+            del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
+            el.appendChild(del);
+
             if (type === 'token') {
                 const edit = document.createElement('button');
                 edit.className = 'edit-btn'; edit.innerText = '✎';
+                
                 edit.onmouseenter = (e) => {
                     activeTokenId = id;
                     cardPopup.style.display = 'block';
                     cardPopup.style.left = (e.clientX + 15) + 'px';
                     cardPopup.style.top = (e.clientY + 15) + 'px';
+                    
+                    // Каждый раз берем данные из текущего состояния объекта (data)
+                    // или обновляем их, если они изменились в базе
                     popupTextarea.value = data.info || "";
                 };
                 el.appendChild(edit);

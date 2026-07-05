@@ -13,30 +13,25 @@
         .btn-air { background: #FFC107; color: black; }
         .btn-hex { background: #795548; color: white; }
         #map-container { position: relative; width: 1000px; height: 600px; background: #333; border: 2px solid #555; margin: 20px auto; overflow: hidden; border-radius: 10px; }
-        .hex { position: absolute; width: 100px; height: 115.47px; background-size: cover; background-position: center; cursor: grab; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; }
-        .token { position: absolute; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: grab; border: 2px solid white; z-index: 2; }
-        .token-inf { background: #2e7d32; }
-        .token-tnk { background: #d32f2f; }
-        .token-air { background: #f9a825; }
         
-        /* Общие стили для круглых кнопок с контуром */
+        .hex { position: absolute; width: 100px; height: 115.47px; background-size: cover; background-position: center; cursor: grab; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; display: flex; align-items: center; justify-content: center; }
+        .token { position: absolute; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: grab; border: 2px solid white; z-index: 2; }
+        
+        /* Стили кнопок */
         .delete-btn, .edit-btn { 
-            position: absolute; 
             border-radius: 50%; 
-            width: 26px; 
-            height: 26px; 
-            font-size: 14px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            cursor: pointer; 
-            z-index: 9999; 
-            border: 2px solid white; /* Контур */
-            color: white;
-            padding: 0;
+            width: 26px; height: 26px; 
+            font-size: 14px; display: flex; align-items: center; justify-content: center; 
+            cursor: pointer; border: 2px solid white; color: white; padding: 0;
         }
-        .delete-btn { top: -8px; right: -8px; background: #ff3b30; }
-        .edit-btn { top: 25px; right: -8px; background: #2196F3; }
+        
+        /* Кнопка удаления для фишек */
+        .token .delete-btn { position: absolute; top: -8px; right: -8px; background: #ff3b30; }
+        .token .edit-btn { position: absolute; top: 25px; right: -8px; background: #2196F3; }
+
+        /* Кнопка удаления для гексов (скрыта по умолчанию, по центру) */
+        .hex .delete-btn { background: #ff3b30; display: none; z-index: 2; }
+        .hex:hover .delete-btn { display: flex; }
     </style>
 </head>
 <body>
@@ -77,13 +72,11 @@
             if (type === 'hex') el.style.backgroundImage = `url('${hexImages[data.type]}')`;
             else el.innerText = tokenIcons[data.type];
             
-            // Кнопка удаления (теперь круглая с контуром)
             const del = document.createElement('button');
             del.className = 'delete-btn'; del.innerText = 'X';
             del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
             el.appendChild(del);
 
-            // Кнопка карандаша (только для токенов, круглая с контуром)
             if (type === 'token') {
                 const edit = document.createElement('button');
                 edit.className = 'edit-btn'; edit.innerText = '✎';

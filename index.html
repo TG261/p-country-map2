@@ -37,16 +37,16 @@
 </head>
 <body>
     <div class="sidebar">
-        <h2>Добавить гекс</h2>
-        <button class="btn-hex" id="add-town">🏰 + Город</button>
-        <button class="btn-hex" id="add-field">🌱 + Поле</button>
-        <button class="btn-hex" id="add-forest">🌲 + Лес</button>
-        <button class="btn-hex" id="add-bushes">🌿 + Кусты</button>
-        <button class="btn-hex" id="add-village">🏠 + Деревня</button>
-        <button class="btn-hex" id="add-farmland">🌾 + Пашня</button>
-        <button class="btn-hex" id="add-port">⚓ + Морской Порт</button>
-        <button class="btn-hex" id="add-sea">🌊 + Море</button>
-    </div>
+    <h2>Добавить гекс</h2>
+    <button class="btn-hex" id="add-town"> 🏰  + Город</button>
+    <button class="btn-hex" id="add-field"> 🌱  + Поле</button>
+    <button class="btn-hex" id="add-forest"> 🌲  + Лес</button>
+    <button class="btn-hex" id="add-bushes"> 🌿  + Кусты</button>
+    <button class="btn-hex" id="add-village"> 🏠  + Деревня</button>
+    <button class="btn-hex" id="add-farmland"> 🌾  + Пашня</button>
+    <button class="btn-hex" id="add-port"> ⚓  + Морской Порт</button>
+    <button class="btn-hex" id="add-sea"> 🌊  + Море</button>
+</div>
     
     <div class="main-content">
         <h1>Система управления картой</h1>
@@ -93,10 +93,16 @@
             }
         };
         
-        const hexImages = { 
-            town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png',
-            village: 'assets/Деревня.png', farmland: 'assets/Пашня.png', port: 'assets/Морской Порт.png', sea: 'assets/Море.png'
-        };
+       const hexImages = { 
+    town: 'assets/Город.png', 
+    field: 'assets/Равнина.png', 
+    forest: 'assets/Лес.png', 
+    bushes: 'assets/Кусты.png',
+    village: 'assets/Деревня.png',
+    farmland: 'assets/Пашня.png',
+    port: 'assets/Морской Порт.png',
+    sea: 'assets/Море.png' 
+};
         const tokenIcons = { INF: '🏃', TNK: '🚜', AIR: '✈️' };
         
         function renderElement(id, data, type) {

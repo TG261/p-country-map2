@@ -7,13 +7,16 @@
     <style>
         body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; display: flex; gap: 20px; }
         
+        /* Боковая панель */
         .sidebar-wrapper { position: relative; display: flex; }
         .sidebar { width: 280px; background: #2d2d2d; padding: 20px; border-radius: 8px; border: 1px solid #444; height: fit-content; transition: margin-left 0.3s ease; }
         .sidebar.hidden { margin-left: -320px; }
         .sidebar h2 { font-size: 18px; margin-top: 0; text-align: center; }
         
+        /* Кнопка переключения панели */
         #toggle-sidebar { position: absolute; right: -40px; top: 0; height: 40px; width: 40px; background: #444; border: none; color: white; cursor: pointer; border-radius: 4px; font-weight: bold; }
         
+        /* Основная область */
         .main-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; }
         .controls-wrapper { display: flex; gap: 20px; margin-bottom: 20px; }
         
@@ -75,6 +78,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         
+        // Переключение панели
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('toggle-sidebar');
         toggleBtn.onclick = () => {
@@ -107,16 +111,9 @@
             }
         };
         
-        // Добавлены новые пути к изображениям
         const hexImages = { 
-            town: 'assets/Город.png', 
-            field: 'assets/Равнина.png', 
-            forest: 'assets/Лес.png', 
-            bushes: 'assets/Кусты.png',
-            village: 'assets/Деревня.png',
-            farmland: 'assets/Пашня.png',
-            port: 'assets/Морской Порт.png',
-            sea: 'assets/Mope.png'
+            town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png',
+            village: 'assets/Деревня.png', farmland: 'assets/Пашня.png', port: 'assets/Морской Порт.png', sea: 'assets/Mope.png'
         };
         const tokenIcons = { INF: '🏃', TNK: '🚜', AIR: '✈️' };
         
@@ -180,7 +177,6 @@
         document.getElementById('add-field').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'field', top: 150, left: 150 });
         document.getElementById('add-forest').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'forest', top: 150, left: 150 });
         document.getElementById('add-bushes').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'bushes', top: 150, left: 150 });
-        // Обработчики для новых гексов
         document.getElementById('add-village').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'village', top: 150, left: 150 });
         document.getElementById('add-farmland').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'farmland', top: 150, left: 150 });
         document.getElementById('add-port').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'port', top: 150, left: 150 });

@@ -30,11 +30,18 @@
         .hex .delete-btn { background: #ff3b30; display: none; z-index: 2; }
         .hex:hover .delete-btn { display: flex; }
         
-        #card-popup { display: none; position: fixed; background: #e6c2b8; border: 2px solid #000; padding: 15px; z-index: 10000; border-radius: 2px; color: black; width: 200px; text-align: left; box-shadow: 5px 5px 10px rgba(0,0,0,0.5); }
-        #popup-textarea { width: 100%; height: 100px; background: transparent; border: 1px solid #000; resize: none; font-family: Arial, sans-serif; white-space: pre-wrap; margin-top: 5px; }
-        #save-btn { width: 100%; margin-top: 5px; padding: 5px; background: #4CAF50; color: white; border: none; cursor: pointer; font-weight: bold; }
-    </style>
-</head>
+       <div id="card-popup">
+        </div>
+
+    <div id="rotation-popup" style="display: none; position: fixed; background: #333; border: 1px solid #fff; padding: 10px; z-index: 10000; border-radius: 5px;">
+        <input type="number" id="rotation-input" placeholder="Градусы" style="width: 70px;">
+        <button id="apply-rotation">Применить</button>
+    </div>
+
+    <script type="module">
+        // ... ваш скрипт ...
+    </script>
+</body>
 <body>
     <div class="sidebar">
     <h2>Добавить гекс</h2>
@@ -64,7 +71,8 @@
         <button id="save-btn">💾 Сохранить</button>
     </div>
     
-  <script type="module">
+ // Полный исправленный код
+<script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
@@ -83,8 +91,27 @@
     const cardPopup = document.getElementById('card-popup');
     const popupTextarea = document.getElementById('popup-textarea');
     const saveBtn = document.getElementById('save-btn');
+    const rotationPopup = document.getElementById('rotation-popup');
+    const rotationInput = document.getElementById('rotation-input');
+    const applyRotationBtn = document.getElementById('apply-rotation');
     let activeTokenId = null;
+    let hexToRotateId = null;
     let activeTokenData = {};
+
+    saveBtn.onclick = () => {
+        if (activeTokenId) {
+            update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
+            cardPopup.style.display = 'none';
+            activeTokenId = null;
+        }
+    };
+
+    applyRotationBtn.onclick = () => {
+        if (hexToRotateId) {
+            update(ref(db, 'hexes/' + hexToRotateId), { rotation: parseInt(rotationInput.value) || 0 });
+            rotationPopup.style.display = 'none';
+        }
+    };
 
     const hexImages = {
         town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png',
@@ -99,7 +126,18 @@
         el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
         
         if (type === 'hex') {
-           
+            el.style.backgroundImage = `url('${hexImages[data.type]}')`;
+            el.style.transform = `rotate(${data.rotation || 0}deg)`;
+            el.onclick = (e) => {
+                if (e.target.className === 'delete-btn') return;
+                hexToRotateId = id;
+                rotationPopup.style.display = 'block';
+                rotationPopup.style.left = (e.clientX + 10) + 'px';
+                rotationPopup.style.top = (e.clientY + 10) + 'px';
+            };
+        } else {
+            el.innerText = tokenIcons[data.type];
+        }
 
         const del = document.createElement('button');
         del.className = 'delete-btn'; del.innerText = 'X';
@@ -109,7 +147,14 @@
         if (type === 'token') {
             const edit = document.createElement('button');
             edit.className = 'edit-btn'; edit.innerText = ' ✎ ';
-            edit.onclick = (e) => { e.stopPropagation(); activeTokenId = id; cardPopup.style.display = 'block'; cardPopup.style.left = (e.clientX + 15) + 'px'; cardPopup.style.top = (e.clientY + 15) + 'px'; popupTextarea.value = activeTokenData[id]?.info || data.info || ""; };
+            edit.onclick = (e) => {
+                e.stopPropagation();
+                activeTokenId = id;
+                cardPopup.style.display = 'block';
+                cardPopup.style.left = (e.clientX + 15) + 'px';
+                cardPopup.style.top = (e.clientY + 15) + 'px';
+                popupTextarea.value = activeTokenData[id]?.info || data.info || "";
+            };
             el.appendChild(edit);
         }
 
@@ -150,7 +195,6 @@
     onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
     onChildRemoved(ref(db, 'tokens'), (s) => { delete activeTokenData[s.key]; document.getElementById(s.key)?.remove(); });
 
-    // Кнопки добавления теперь сразу инициализируют rotation: 0
     document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'town', top: 150, left: 150, rotation: 0 });
     document.getElementById('add-field').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'field', top: 150, left: 150, rotation: 0 });
     document.getElementById('add-forest').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'forest', top: 150, left: 150, rotation: 0 });
@@ -163,14 +207,6 @@
     document.getElementById('add-inf').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'INF', top: 50, left: 50, info: "Пехота" });
     document.getElementById('add-tank').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'TNK', top: 50, left: 50, info: "Техника" });
     document.getElementById('add-air').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'AIR', top: 50, left: 50, info: "Авиация" });
-    
-    saveBtn.onclick = () => {
-        if (activeTokenId) {
-            update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
-            cardPopup.style.display = 'none';
-            activeTokenId = null;
-        }
-    };
 </script>
 </body>
 </html>

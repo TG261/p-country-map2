@@ -12,9 +12,31 @@
         .btn-tank { background: #d32f2f; color: white; }
         .btn-air { background: #FFC107; color: black; }
         .btn-hex { background: #795548; color: white; }
-        #map-container { position: relative; width: 1000px; height: 600px; background: #333; border: 2px solid #555; margin: 20px auto; overflow: hidden; border-radius: 10px; }
         
-        .hex { position: absolute; width: 100px; height: 115.47px; background-size: cover; background-position: center; cursor: grab; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; display: flex; align-items: center; justify-content: center; }
+        #map-container { 
+            position: relative; 
+            width: 1200px; /* Увеличено */
+            height: 800px;  /* Увеличено */
+            background: #333; 
+            border: 2px solid #555; 
+            margin: 20px auto; 
+            overflow: hidden; 
+            border-radius: 10px; 
+        }
+        
+        .hex { 
+            position: absolute; 
+            width: 120px;     /* Увеличено */
+            height: 138.56px; /* Рассчитано пропорционально */
+            background-size: cover; 
+            background-position: center; 
+            cursor: grab; 
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); 
+            z-index: 1; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
         .token { position: absolute; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: grab; border: 2px solid white; z-index: 2; }
         
         .delete-btn, .edit-btn { border-radius: 50%; width: 26px; height: 26px; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; color: white; padding: 0; position: absolute; }
@@ -63,7 +85,7 @@
         const popupTextarea = document.getElementById('popup-textarea');
         const saveBtn = document.getElementById('save-btn');
         let activeTokenId = null;
-        let activeTokenData = {}; // Хранилище для актуальных данных
+        let activeTokenData = {}; 
 
         saveBtn.onclick = () => {
             if (activeTokenId) {
@@ -119,12 +141,12 @@
 
         onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
         onChildAdded(ref(db, 'tokens'), (s) => {
-            activeTokenData[s.key] = s.val(); // Сохраняем актуальные данные
+            activeTokenData[s.key] = s.val();
             renderElement(s.key, s.val(), 'token');
         });
         
         onChildChanged(ref(db, 'tokens'), (s) => {
-            activeTokenData[s.key] = s.val(); // Обновляем локальные данные
+            activeTokenData[s.key] = s.val();
             const el = document.getElementById(s.key); 
             if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }
             if (activeTokenId === s.key && cardPopup.style.display === 'block' && document.activeElement !== popupTextarea) {

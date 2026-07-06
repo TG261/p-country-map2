@@ -5,26 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Система управления картой</title>
     <style>
-        /* Стили: Оформление интерфейса */
         body { font-family: Arial, sans-serif; background: #222; color: #fff; margin: 0; display: flex; height: 100vh; overflow: hidden; }
         #sidebar { width: 300px; background: #2b2b2b; border-right: 2px solid #444; padding: 20px; display: flex; flex-direction: column; gap: 10px; transition: margin-left 0.3s; }
         #sidebar.hidden { margin-left: -300px; }
         #main-area { flex-grow: 1; display: flex; flex-direction: column; align-items: center; padding: 20px; position: relative; }
-        
         .controls { display: flex; gap: 10px; margin-bottom: 20px; }
         button { padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; }
         .btn-hex { background: #795548; color: white; width: 100%; }
-        
         #map-container { position: relative; width: 1000px; height: 700px; background: #333; border: 2px solid #555; border-radius: 10px; overflow: hidden; }
         .hex { position: absolute; width: 120px; height: 138.56px; background-size: cover; cursor: grab; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; display: flex; align-items: center; justify-content: center; }
         .token { position: absolute; width: 45px; height: 45px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: grab; z-index: 2; background: #555; }
-        
         .btn-action { width: 26px; height: 26px; border-radius: 50%; border: 2px solid white; background: transparent; color: white; display: none; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; padding: 0; position: absolute; }
         .hex:hover .delete-btn, .token:hover .delete-btn, .token:hover .edit-btn { display: flex; }
         .token .delete-btn { top: -8px; right: -8px; background: #ff3b30; }
         .token .edit-btn { top: 25px; right: -8px; background: #2196F3; }
         .hex .delete-btn { background: #ff3b30; }
-        
         #card-popup { display: none; position: fixed; background: #e6c2b8; padding: 15px; z-index: 10000; border: 2px solid #000; color: black; border-radius: 2px; width: 200px; }
         #popup-textarea { width: 100%; height: 80px; margin-top: 5px; }
         #save-btn { width: 100%; margin-top: 5px; padding: 5px; background: #4CAF50; color: white; border: none; cursor: pointer; font-weight: bold; }
@@ -60,7 +55,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
@@ -72,9 +66,9 @@
             appId: "1:786305486724:web:fbc318ab0864fa821897d1",
             measurementId: "G-VM0FCZX9D8"
         };
+        
         const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const analytics = getAnalytics(app);
+        const db = getDatabase(app, "https://rp-map-218d5-default-rtdb.firebaseio.com");
 
         const mapContainer = document.getElementById('map-container');
         const cardPopup = document.getElementById('card-popup');
@@ -132,6 +126,7 @@
 
         onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
         onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
+        onChildChanged(ref(db, 'tokens'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
         onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
         onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());
 

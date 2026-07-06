@@ -93,34 +93,38 @@
     };
     const tokenIcons = { INF: ' 🏃 ', TNK: ' 🚜 ', AIR: ' ✈️ ' };
 
-    function renderElement(id, data, type) {
-        const el = document.createElement('div');
-        el.className = type === 'hex' ? 'hex' : `token token-${data.type ? data.type.toLowerCase() : 'default'}`;
-        el.id = id;
-        el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
-        
-        if (type === 'hex') {
-            el.style.backgroundImage = `url('${hexImages[data.type]}')`;
-            // Применяем текущий угол поворота из базы
-            el.style.transform = `rotate(${data.rotation || 0}deg)`;
-            
-            // Вращение по часовой (правый клик) - БЕСКОНЕЧНО
-            el.oncontextmenu = (e) => {
-                e.preventDefault();
-                const current = data.rotation || 0;
-                update(ref(db, 'hexes/' + id), { rotation: (current + 60) % 360 });
-            };
-            
-            // Вращение против часовой (двойной левый клик) - БЕСКОНЕЧНО
-            el.ondblclick = (e) => {
-                const current = data.rotation || 0;
-                // Добавляем 360 перед взятием остатка, чтобы избежать отрицательных чисел
-                update(ref(db, 'hexes/' + id), { rotation: (current - 60 + 360) % 360 });
-            };
-        } else {
-            el.innerText = tokenIcons[data.type];
-        }
+function renderElement(id, data, type) {
+    const el = document.createElement('div');
+    el.className = type === 'hex' ? 'hex' : `token token-${data.type ? data.type.toLowerCase() : 'default'}`;
+    el.id = id;
+    el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
+    
+    // Применяем текущий поворот из базы данных
+    if (type === 'hex') {
+        el.style.backgroundImage = `url('${hexImages[data.type]}')`;
+        el.style.transform = `rotate(${data.rotation || 0}deg)`;
+        el.style.transition = "transform 0.2s ease"; // Плавный поворот
 
+        // Правая кнопка: поворот по часовой (+60)
+        el.oncontextmenu = (e) => {
+            e.preventDefault(); // Убираем стандартное меню
+            const currentRotation = data.rotation || 0;
+            const newRotation = (currentRotation + 60) % 360;
+            update(ref(db, 'hexes/' + id), { rotation: newRotation });
+        };
+
+        // Левая кнопка (двойной клик): поворот против часовой (-60)
+        el.ondblclick = (e) => {
+            const currentRotation = data.rotation || 0;
+            // Учитываем отрицательные значения до -360
+            let newRotation = currentRotation - 60;
+            if (newRotation <= -360) newRotation = 0; 
+            update(ref(db, 'hexes/' + id), { rotation: newRotation });
+        };
+    } else {
+        el.innerText = tokenIcons[data.type];
+    }
+    
         // Остальная логика создания кнопок удаления/редактирования
         const del = document.createElement('button');
         del.className = 'delete-btn'; del.innerText = 'X';
@@ -160,15 +164,15 @@
     // Синхронизация
     onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
     onChildAdded(ref(db, 'tokens'), (s) => { activeTokenData[s.key] = s.val(); renderElement(s.key, s.val(), 'token'); });
-
+    
     onChildChanged(ref(db, 'hexes'), (s) => { 
-        const el = document.getElementById(s.key); 
-        if(el) { 
-            el.style.top = s.val().top + 'px'; 
-            el.style.left = s.val().left + 'px'; 
-            el.style.transform = `rotate(${s.val().rotation || 0}deg)`; 
-        }
-    });
+    const el = document.getElementById(s.key); 
+    if(el) { 
+        el.style.top = s.val().top + 'px'; 
+        el.style.left = s.val().left + 'px'; 
+        el.style.transform = `rotate(${s.val().rotation || 0}deg)`; // Добавьте эту строку
+    }
+});
     
     onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
     onChildRemoved(ref(db, 'tokens'), (s) => { delete activeTokenData[s.key]; document.getElementById(s.key)?.remove(); });

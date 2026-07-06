@@ -7,9 +7,14 @@
     <style>
         body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; display: flex; gap: 20px; }
         
-        /* Боковая панель */
-        .sidebar { width: 280px; background: #2d2d2d; padding: 20px; border-radius: 8px; border: 1px solid #444; height: fit-content; }
+        /* Боковая панель с поддержкой скрытия */
+        .sidebar-wrapper { position: relative; display: flex; }
+        .sidebar { width: 280px; background: #2d2d2d; padding: 20px; border-radius: 8px; border: 1px solid #444; height: fit-content; transition: margin-left 0.3s ease; }
+        .sidebar.hidden { margin-left: -320px; }
         .sidebar h2 { font-size: 18px; margin-top: 0; text-align: center; }
+        
+        /* Кнопка переключения панели */
+        #toggle-sidebar { position: absolute; right: -40px; top: 0; height: 40px; width: 40px; background: #444; border: none; color: white; cursor: pointer; border-radius: 4px; font-weight: bold; }
         
         /* Основная область */
         .main-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; }
@@ -46,13 +51,15 @@
     </style>
 </head>
 <body>
-
-    <div class="sidebar">
-        <h2>Добавить гекс</h2>
-        <button class="btn-hex" id="add-town">🏰 + Город</button>
-        <button class="btn-hex" id="add-field">🌱 + Поле</button>
-        <button class="btn-hex" id="add-forest">🌲 + Лес</button>
-        <button class="btn-hex" id="add-bushes">🌿 + Кусты</button>
+    <div class="sidebar-wrapper">
+        <div class="sidebar" id="sidebar">
+            <h2>Добавить гекс</h2>
+            <button class="btn-hex" id="add-town">🏰 + Город</button>
+            <button class="btn-hex" id="add-field">🌱 + Поле</button>
+            <button class="btn-hex" id="add-forest">🌲 + Лес</button>
+            <button class="btn-hex" id="add-bushes">🌿 + Кусты</button>
+        </div>
+        <button id="toggle-sidebar">◀</button>
     </div>
     
     <div class="main-content">
@@ -70,11 +77,19 @@
         <textarea id="popup-textarea"></textarea>
         <button id="save-btn">💾 Сохранить</button>
     </div>
-
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         
+        // Логика переключения панели
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('toggle-sidebar');
+        toggleBtn.onclick = () => {
+            sidebar.classList.toggle('hidden');
+            toggleBtn.innerText = sidebar.classList.contains('hidden') ? '▶' : '◀';
+        };
+
         const firebaseConfig = {
             apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
             authDomain: "rp-map-218d5.firebaseapp.com",
@@ -99,10 +114,10 @@
                 activeTokenId = null;
             }
         };
-
+        
         const hexImages = { town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png' };
         const tokenIcons = { INF: '🏃', TNK: '🚜', AIR: '✈️' };
-
+        
         function renderElement(id, data, type) {
             const el = document.createElement('div');
             el.className = type === 'hex' ? 'hex' : `token token-${data.type ? data.type.toLowerCase() : 'default'}`;
@@ -129,6 +144,7 @@
                 };
                 el.appendChild(edit);
             }
+            
             el.onmousedown = (e) => {
                 if (e.target.className === 'delete-btn' || e.target.className === 'edit-btn') return;
                 let shiftX = e.clientX - el.getBoundingClientRect().left;
@@ -143,15 +159,17 @@
             };
             mapContainer.appendChild(el);
         }
-
+        
         onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
         onChildAdded(ref(db, 'tokens'), (s) => { activeTokenData[s.key] = s.val(); renderElement(s.key, s.val(), 'token'); });
+        
         onChildChanged(ref(db, 'tokens'), (s) => {
             activeTokenData[s.key] = s.val();
             const el = document.getElementById(s.key); 
             if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }
             if (activeTokenId === s.key && cardPopup.style.display === 'block' && document.activeElement !== popupTextarea) popupTextarea.value = s.val().info || "";
         });
+        
         onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
         onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
         onChildRemoved(ref(db, 'tokens'), (s) => { delete activeTokenData[s.key]; document.getElementById(s.key)?.remove(); });

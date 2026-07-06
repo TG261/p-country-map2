@@ -87,23 +87,27 @@
             el.style.transform = `rotate(${data.rotation || 0}deg)`;
             el.style.transition = "transform 0.1s linear";
 
-            // ПРАВАЯ КНОПКА: Вращение по часовой (на 60°)
-            el.oncontextmenu = (e) => {
-                e.preventDefault();
-                const current = data.rotation || 0;
-                update(ref(db, 'hexes/' + id), { rotation: (current + 60) % 360 });
-            };
+            // ПРАВАЯ КНОПКА (по часовой)
+el.oncontextmenu = (e) => {
+    e.preventDefault(); 
+    // Берем текущий угол из Firebase, если его нет — берем 0
+    let currentRotation = data.rotation || 0;
+    // Прибавляем 60 и берем остаток от деления на 360
+    let newRotation = (currentRotation + 60) % 360;
+    
+    // Обновляем базу данных
+    update(ref(db, 'hexes/' + id), { rotation: newRotation });
+};
 
-            // ЛЕВАЯ КНОПКА (Двойной клик): Вращение против часовой (-60°)
-            el.ondblclick = (e) => {
-                e.preventDefault();
-                const current = data.rotation || 0;
-                // Добавляем 360 перед остатком, чтобы корректно обрабатывать отрицательные углы
-                update(ref(db, 'hexes/' + id), { rotation: (current - 60 + 360) % 360 });
-            };
-        } else {
-            el.innerText = tokenIcons[data.type];
-        }
+// ЛЕВАЯ КНОПКА (против часовой)
+el.ondblclick = (e) => {
+    e.preventDefault();
+    let currentRotation = data.rotation || 0;
+    // Вычитаем 60, прибавляем 360 чтобы не уйти в минус, берем остаток
+    let newRotation = (currentRotation - 60 + 360) % 360;
+    
+    update(ref(db, 'hexes/' + id), { rotation: newRotation });
+};
 
         // ... (код для кнопок удаления и перетаскивания сохраните без изменений) ...
         mapContainer.appendChild(el);

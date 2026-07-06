@@ -2,53 +2,185 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Система управления картой</title>
     <style>
         body { font-family: Arial, sans-serif; background: #222; color: #fff; text-align: center; margin: 0; padding: 20px; }
-        /* Панель управления */
-        .panel { background: #444; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-        .hex-number { position: absolute; bottom: 10px; right: 15px; font-weight: bold; background: rgba(0,0,0,0.5); padding: 2px 5px; border-radius: 3px; pointer-events: none; }
-        .hex { transition: transform 0.3s; position: absolute; width: 120px; height: 138.56px; background-size: cover; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
-        .rotate-btn { position: absolute; top: 25px; left: -10px; background: #4CAF50; border-radius: 50%; width: 25px; height: 25px; border: 1px solid white; cursor: pointer; }
-        /* Остальные стили для юнитов остаются прежними */
+        .controls-wrapper { display: flex; justify-content: center; gap: 50px; margin-bottom: 20px; }
+        .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        
+        button { padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; display: flex; align-items: center; gap: 5px; }
+        .btn-inf { background: #4CAF50; color: white; }
+        .btn-tank { background: #d32f2f; color: white; }
+        .btn-air { background: #FFC107; color: black; }
+        .btn-hex { background: #795548; color: white; }
+        
+        #map-container { 
+            position: relative; 
+            width: 1200px; 
+            height: 800px; 
+            background: #333; 
+            border: 2px solid #555; 
+            margin: 0 auto; 
+            overflow: hidden; 
+            border-radius: 10px; 
+        }
+        
+        .hex { 
+            position: absolute; 
+            width: 120px; 
+            height: 138.56px; 
+            background-size: cover; 
+            background-position: center; 
+            cursor: grab; 
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); 
+            z-index: 1; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        .token { position: absolute; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: grab; border: 2px solid white; z-index: 2; }
+        
+        .delete-btn, .edit-btn { border-radius: 50%; width: 26px; height: 26px; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; color: white; padding: 0; position: absolute; }
+        .token .delete-btn { top: -8px; right: -8px; background: #ff3b30; }
+        .token .edit-btn { top: 25px; right: -8px; background: #2196F3; }
+        .hex .delete-btn { background: #ff3b30; display: none; z-index: 2; }
+        .hex:hover .delete-btn { display: flex; }
+        
+        #card-popup { display: none; position: fixed; background: #e6c2b8; border: 2px solid #000; padding: 15px; z-index: 10000; border-radius: 2px; color: black; width: 200px; text-align: left; box-shadow: 5px 5px 10px rgba(0,0,0,0.5); }
+        #popup-textarea { width: 100%; height: 100px; background: transparent; border: 1px solid #000; resize: none; font-family: Arial, sans-serif; white-space: pre-wrap; margin-top: 5px; }
+        #save-btn { width: 100%; margin-top: 5px; padding: 5px; background: #4CAF50; color: white; border: none; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="panel">
-        <h3>Выбрать гекс</h3>
-        <button onclick="addHex('field')">Равнина</button>
-        <button onclick="addHex('forest')">Лес</button>
-        <button onclick="addHex('town')">Город</button>
-        <button onclick="addHex('bushes')">Кусты</button>
+    <h1>Система управления картой</h1>
+    
+    <div class="controls-wrapper">
+        <div class="controls" id="hex-controls">
+            <button class="btn-hex" id="add-town">🏰 + Город</button>
+            <button class="btn-hex" id="add-field">🌱 + Поле</button>
+            <button class="btn-hex" id="add-forest">🌲 + Лес</button>
+            <button class="btn-hex" id="add-bushes">🌿 + Кусты</button>
+        </div>
+        <div class="controls" id="unit-controls">
+            <button class="btn-inf" id="add-inf">🏃 + Пехота</button>
+            <button class="btn-tank" id="add-tank">🚜 + Техника</button>
+            <button class="btn-air" id="add-air">✈️ + Авиация</button>
+        </div>
     </div>
-    <div id="map-container" style="position:relative; width:1200px; height:800px; background:#333; margin:auto;"></div>
+
+    <div id="map-container"></div>
+    
+    <div id="card-popup">
+        <div style="font-weight: bold; border-bottom: 1px solid #000; margin-bottom: 5px;">КАРТОЧКА</div>
+        <textarea id="popup-textarea"></textarea>
+        <button id="save-btn">💾 Сохранить</button>
+    </div>
 
     <script type="module">
-        import { getDatabase, ref, set, onChildAdded, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        // ... (инициализация Firebase)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         
-        window.addHex = (type) => set(ref(db, 'hexes/' + Date.now()), { type, top: 100, left: 100, rotation: 0, number: "0" });
+        const firebaseConfig = {
+            apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
+            authDomain: "rp-map-218d5.firebaseapp.com",
+            databaseURL: "https://rp-map-218d5-default-rtdb.firebaseio.com",
+            projectId: "rp-map-218d5",
+            storageBucket: "rp-map-218d5.firebasestorage.app",
+            messagingSenderId: "786305486724",
+            appId: "1:786305486724:web:fbc318ab0864fa821897d1"
+        };
+        const db = getDatabase(initializeApp(firebaseConfig));
+        const mapContainer = document.getElementById('map-container');
+        const cardPopup = document.getElementById('card-popup');
+        const popupTextarea = document.getElementById('popup-textarea');
+        const saveBtn = document.getElementById('save-btn');
+        let activeTokenId = null;
+        let activeTokenData = {};
+
+        saveBtn.onclick = () => {
+            if (activeTokenId) {
+                update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
+                cardPopup.style.display = 'none';
+                activeTokenId = null;
+            }
+        };
+
+        const hexImages = { 
+            town: 'assets/Город.png', 
+            field: 'assets/Равнина.png', 
+            forest: 'assets/Лес.png',
+            bushes: 'assets/Кусты.png'
+        };
+        const tokenIcons = { INF: '🏃', TNK: '🚜', AIR: '✈️' };
 
         function renderElement(id, data, type) {
             const el = document.createElement('div');
-            el.className = 'hex';
-            el.style.transform = `rotate(${data.rotation || 0}deg)`;
+            el.className = type === 'hex' ? 'hex' : `token token-${data.type ? data.type.toLowerCase() : 'default'}`;
+            el.id = id;
+            el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
+            if (type === 'hex') el.style.backgroundImage = `url('${hexImages[data.type]}')`;
+            else el.innerText = tokenIcons[data.type];
             
-            // Кнопка поворота
-            const rotBtn = document.createElement('button');
-            rotBtn.className = 'rotate-btn'; rotBtn.innerText = '⟳';
-            rotBtn.onclick = () => update(ref(db, 'hexes/' + id), { rotation: (data.rotation || 0) + 60 });
+            const del = document.createElement('button');
+            del.className = 'delete-btn'; del.innerText = 'X';
+            del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
+            el.appendChild(del);
             
-            // Нумерация
-            const numDiv = document.createElement('div');
-            numDiv.className = 'hex-number';
-            numDiv.innerText = data.number;
-            
-            el.appendChild(rotBtn);
-            el.appendChild(numDiv);
-            // ... (логика перетаскивания и добавления в DOM)
+            if (type === 'token') {
+                const edit = document.createElement('button');
+                edit.className = 'edit-btn'; edit.innerText = '✎';
+                edit.onclick = (e) => {
+                    e.stopPropagation();
+                    activeTokenId = id;
+                    cardPopup.style.display = 'block';
+                    cardPopup.style.left = (e.clientX + 15) + 'px';
+                    cardPopup.style.top = (e.clientY + 15) + 'px';
+                    popupTextarea.value = activeTokenData[id]?.info || data.info || "";
+                };
+                el.appendChild(edit);
+            }
+            el.onmousedown = (e) => {
+                if (e.target.className === 'delete-btn' || e.target.className === 'edit-btn') return;
+                let shiftX = e.clientX - el.getBoundingClientRect().left;
+                let shiftY = e.clientY - el.getBoundingClientRect().top;
+                document.onmousemove = (e) => {
+                    let x = e.clientX - mapContainer.getBoundingClientRect().left - shiftX;
+                    let y = e.clientY - mapContainer.getBoundingClientRect().top - shiftY;
+                    el.style.left = x + 'px'; el.style.top = y + 'px';
+                    update(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id), { top: y, left: x });
+                };
+                document.onmouseup = () => { document.onmousemove = null; };
+            };
+            mapContainer.appendChild(el);
         }
-        // ...
+
+        onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
+        onChildAdded(ref(db, 'tokens'), (s) => {
+            activeTokenData[s.key] = s.val();
+            renderElement(s.key, s.val(), 'token');
+        });
+        
+        onChildChanged(ref(db, 'tokens'), (s) => {
+            activeTokenData[s.key] = s.val();
+            const el = document.getElementById(s.key); 
+            if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }
+            if (activeTokenId === s.key && cardPopup.style.display === 'block' && document.activeElement !== popupTextarea) {
+                popupTextarea.value = s.val().info || "";
+            }
+        });
+        onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
+        onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
+        onChildRemoved(ref(db, 'tokens'), (s) => { delete activeTokenData[s.key]; document.getElementById(s.key)?.remove(); });
+        
+        document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'town', top: 150, left: 150 });
+        document.getElementById('add-field').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'field', top: 150, left: 150 });
+        document.getElementById('add-forest').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'forest', top: 150, left: 150 });
+        document.getElementById('add-bushes').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'bushes', top: 150, left: 150 });
+        
+        document.getElementById('add-inf').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'INF', top: 50, left: 50, info: "Пехота" });
+        document.getElementById('add-tank').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'TNK', top: 50, left: 50, info: "Техника" });
+        document.getElementById('add-air').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'AIR', top: 50, left: 50, info: "Авиация" });
     </script>
 </body>
 </html>

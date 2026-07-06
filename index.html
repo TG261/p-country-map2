@@ -15,13 +15,13 @@
 </head>
 <body>
     <div class="controls-wrapper">
-        <button onclick="addHex('town')">🏰 Город</button>
-        <button onclick="addHex('field')">🌱 Поле</button>
-        <button onclick="addHex('forest')">🌲 Лес</button>
-        <button onclick="addHex('bushes')">🌿 Кусты</button>
-        <button onclick="addToken('INF')">🏃 Пехота</button>
-        <button onclick="addToken('TNK')">🚜 Техника</button>
-        <button onclick="addToken('AIR')">✈️ Авиация</button>
+        <button onclick="window.addHex('town')">🏰 Город</button>
+        <button onclick="window.addHex('field')">🌱 Поле</button>
+        <button onclick="window.addHex('forest')">🌲 Лес</button>
+        <button onclick="window.addHex('bushes')">🌿 Кусты</button>
+        <button onclick="window.addToken('INF')">🏃 Пехота</button>
+        <button onclick="window.addToken('TNK')">🚜 Техника</button>
+        <button onclick="window.addToken('AIR')">✈️ Авиация</button>
     </div>
     <div id="map-container"></div>
     <div id="card-popup"><input type="text" id="num-input"><button id="save-num">Сохранить</button></div>
@@ -30,8 +30,16 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         
-        // ВСТАВЬТЕ СЮДА ВАШ ОБЪЕКТ firebaseConfig ИЗ ВАШЕГО ПРОЕКТА
-        const firebaseConfig = { /* ... */ }; 
+        const firebaseConfig = {
+            apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
+            authDomain: "rp-map-218d5.firebaseapp.com",
+            databaseURL: "https://rp-map-218d5-default-rtdb.firebaseio.com",
+            projectId: "rp-map-218d5",
+            storageBucket: "rp-map-218d5.firebasestorage.app",
+            messagingSenderId: "786305486724",
+            appId: "1:786305486724:web:fbc318ab0864fa821897d1",
+            measurementId: "G-VM0FCZX9D8"
+        }; 
         const db = getDatabase(initializeApp(firebaseConfig));
         const map = document.getElementById('map-container');
         const hexImages = { town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png' };

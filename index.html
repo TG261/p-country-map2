@@ -64,6 +64,121 @@
         <button id="save-btn">💾 Сохранить</button>
     </div>
     
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
+    const firebaseConfig = {
+        apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
+        authDomain: "rp-map-218d5.firebaseapp.com",
+        databaseURL: "https://rp-map-218d5-default-rtdb.firebaseio.com",
+        projectId: "rp-map-218d5",
+        storageBucket: "rp-map-218d5.firebasestorage.app",
+        messagingSenderId: "786305486724",
+        appId: "1:786305486724:web:fbc318ab0864fa821897d1"
+    };
+
+    const db = getDatabase(initializeApp(firebaseConfig));
+    const mapContainer = document.getElementById('map-container');
+    const cardPopup = document.getElementById('card-popup');
+    const popupTextarea = document.getElementById('popup-textarea');
+    const saveBtn = document.getElementById('save-btn');
+    let activeTokenId = null;
+    let activeTokenData = {};
+
+    const hexImages = {
+        town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png',
+        village: 'assets/Деревня.png', farmland: 'assets/Пашня.png', port: 'assets/Морской Порт.png', sea: 'assets/Море.png'
+    };
+    const tokenIcons = { INF: ' 🏃 ', TNK: ' 🚜 ', AIR: ' ✈️ ' };
+
+    function renderElement(id, data, type) {
+        const el = document.createElement('div');
+        el.className = type === 'hex' ? 'hex' : `token token-${data.type ? data.type.toLowerCase() : 'default'}`;
+        el.id = id;
+        el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
+        
+        if (type === 'hex') {
+            el.style.backgroundImage = `url('${hexImages[data.type]}')`;
+            el.style.transform = `rotate(${data.rotation || 0}deg)`;
+            
+            // Вращение: Правая кнопка - по часовой, Двойной левый - против
+            el.oncontextmenu = (e) => { e.preventDefault(); update(ref(db, 'hexes/' + id), { rotation: ((data.rotation || 0) + 60) % 360 }); };
+            el.ondblclick = (e) => { update(ref(db, 'hexes/' + id), { rotation: ((data.rotation || 0) - 60 + 360) % 360 }); };
+        } else {
+            el.innerText = tokenIcons[data.type];
+        }
+
+        const del = document.createElement('button');
+        del.className = 'delete-btn'; del.innerText = 'X';
+        del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
+        el.appendChild(del);
+
+        if (type === 'token') {
+            const edit = document.createElement('button');
+            edit.className = 'edit-btn'; edit.innerText = ' ✎ ';
+            edit.onclick = (e) => { e.stopPropagation(); activeTokenId = id; cardPopup.style.display = 'block'; cardPopup.style.left = (e.clientX + 15) + 'px'; cardPopup.style.top = (e.clientY + 15) + 'px'; popupTextarea.value = activeTokenData[id]?.info || data.info || ""; };
+            el.appendChild(edit);
+        }
+
+        el.onmousedown = (e) => {
+            if (e.target.className === 'delete-btn' || e.target.className === 'edit-btn') return;
+            let shiftX = e.clientX - el.getBoundingClientRect().left;
+            let shiftY = e.clientY - el.getBoundingClientRect().top;
+            document.onmousemove = (e) => {
+                let x = e.clientX - mapContainer.getBoundingClientRect().left - shiftX;
+                let y = e.clientY - mapContainer.getBoundingClientRect().top - shiftY;
+                el.style.left = x + 'px'; el.style.top = y + 'px';
+                update(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id), { top: y, left: x });
+            };
+            document.onmouseup = () => { document.onmousemove = null; };
+        };
+        mapContainer.appendChild(el);
+    }
+
+    onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
+    onChildAdded(ref(db, 'tokens'), (s) => { activeTokenData[s.key] = s.val(); renderElement(s.key, s.val(), 'token'); });
+
+    onChildChanged(ref(db, 'tokens'), (s) => {
+        activeTokenData[s.key] = s.val();
+        const el = document.getElementById(s.key);
+        if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }
+        if (activeTokenId === s.key && cardPopup.style.display === 'block' && document.activeElement !== popupTextarea) popupTextarea.value = s.val().info || "";
+    });
+
+    onChildChanged(ref(db, 'hexes'), (s) => { 
+        const el = document.getElementById(s.key); 
+        if(el) { 
+            el.style.top = s.val().top + 'px'; 
+            el.style.left = s.val().left + 'px'; 
+            el.style.transform = `rotate(${s.val().rotation || 0}deg)`; 
+        }
+    });
+
+    onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
+    onChildRemoved(ref(db, 'tokens'), (s) => { delete activeTokenData[s.key]; document.getElementById(s.key)?.remove(); });
+
+    // Кнопки добавления теперь сразу инициализируют rotation: 0
+    document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'town', top: 150, left: 150, rotation: 0 });
+    document.getElementById('add-field').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'field', top: 150, left: 150, rotation: 0 });
+    document.getElementById('add-forest').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'forest', top: 150, left: 150, rotation: 0 });
+    document.getElementById('add-bushes').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'bushes', top: 150, left: 150, rotation: 0 });
+    document.getElementById('add-village').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'village', top: 150, left: 150, rotation: 0 });
+    document.getElementById('add-farmland').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'farmland', top: 150, left: 150, rotation: 0 });
+    document.getElementById('add-port').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'port', top: 150, left: 150, rotation: 0 });
+    document.getElementById('add-sea').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'sea', top: 150, left: 150, rotation: 0 });
+
+    document.getElementById('add-inf').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'INF', top: 50, left: 50, info: "Пехота" });
+    document.getElementById('add-tank').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'TNK', top: 50, left: 50, info: "Техника" });
+    document.getElementById('add-air').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'AIR', top: 50, left: 50, info: "Авиация" });
+    
+    saveBtn.onclick = () => {
+        if (activeTokenId) {
+            update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
+            cardPopup.style.display = 'none';
+            activeTokenId = null;
+        }
+    };
+</script>
 </body>
 </html>

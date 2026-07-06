@@ -6,37 +6,19 @@
     <title>Система управления картой</title>
     <style>
         body { font-family: Arial, sans-serif; background: #222; color: #fff; text-align: center; margin: 0; padding: 20px; }
-        .controls { margin: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; align-items: center; }
+        /* Разделили управление на два блока */
+        .controls-wrapper { display: flex; justify-content: center; gap: 50px; margin-bottom: 20px; }
+        .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        
         button { padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; display: flex; align-items: center; gap: 5px; }
         .btn-inf { background: #4CAF50; color: white; }
         .btn-tank { background: #d32f2f; color: white; }
         .btn-air { background: #FFC107; color: black; }
         .btn-hex { background: #795548; color: white; }
         
-        #map-container { 
-            position: relative; 
-            width: 1200px; /* Увеличено */
-            height: 800px;  /* Увеличено */
-            background: #333; 
-            border: 2px solid #555; 
-            margin: 20px auto; 
-            overflow: hidden; 
-            border-radius: 10px; 
-        }
+        #map-container { position: relative; width: 1200px; height: 800px; background: #333; border: 2px solid #555; margin: 0 auto; overflow: hidden; border-radius: 10px; }
         
-        .hex { 
-            position: absolute; 
-            width: 120px;     /* Увеличено */
-            height: 138.56px; /* Рассчитано пропорционально */
-            background-size: cover; 
-            background-position: center; 
-            cursor: grab; 
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); 
-            z-index: 1; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-        }
+        .hex { position: absolute; width: 120px; height: 138.56px; background-size: cover; background-position: center; cursor: grab; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; display: flex; align-items: center; justify-content: center; }
         .token { position: absolute; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: grab; border: 2px solid white; z-index: 2; }
         
         .delete-btn, .edit-btn { border-radius: 50%; width: 26px; height: 26px; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; color: white; padding: 0; position: absolute; }
@@ -52,114 +34,41 @@
 </head>
 <body>
     <h1>Система управления картой</h1>
-    <div class="controls">
-        <button class="btn-hex" id="add-town">🏰 + Город</button>
-        <button class="btn-hex" id="add-field">🌱 + Поле</button>
-        <button class="btn-hex" id="add-forest">🌲 + Лес</button>
-        <button class="btn-inf" id="add-inf">🏃 + Пехота</button>
-        <button class="btn-tank" id="add-tank">🚜 + Техника</button>
-        <button class="btn-air" id="add-air">✈️ + Авиация</button>
+    
+    <div class="controls-wrapper">
+        <!-- Левый блок: Гексы -->
+        <div class="controls" id="hex-controls">
+            <button class="btn-hex" id="add-town">🏰 + Город</button>
+            <button class="btn-hex" id="add-field">🌱 + Поле</button>
+            <button class="btn-hex" id="add-forest">🌲 + Лес</button>
+            <button class="btn-hex" id="add-bushes">🌿 + Кусты</button>
+        </div>
+        <!-- Правый блок: Юниты -->
+        <div class="controls" id="unit-controls">
+            <button class="btn-inf" id="add-inf">🏃 + Пехота</button>
+            <button class="btn-tank" id="add-tank">🚜 + Техника</button>
+            <button class="btn-air" id="add-air">✈️ + Авиация</button>
+        </div>
     </div>
+
     <div id="map-container"></div>
-    <div id="card-popup">
-        <div style="font-weight: bold; border-bottom: 1px solid #000; margin-bottom: 5px;">КАРТОЧКА</div>
-        <textarea id="popup-textarea"></textarea>
-        <button id="save-btn">💾 Сохранить</button>
-    </div>
+    
+    <!-- ... (остальной HTML-код карточки без изменений) ... -->
+
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        // ... (инициализация Firebase без изменений) ...
         
-        const firebaseConfig = {
-            apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
-            authDomain: "rp-map-218d5.firebaseapp.com",
-            databaseURL: "https://rp-map-218d5-default-rtdb.firebaseio.com",
-            projectId: "rp-map-218d5",
-            storageBucket: "rp-map-218d5.firebasestorage.app",
-            messagingSenderId: "786305486724",
-            appId: "1:786305486724:web:fbc318ab0864fa821897d1"
-        };
-        const db = getDatabase(initializeApp(firebaseConfig));
-        const mapContainer = document.getElementById('map-container');
-        const cardPopup = document.getElementById('card-popup');
-        const popupTextarea = document.getElementById('popup-textarea');
-        const saveBtn = document.getElementById('save-btn');
-        let activeTokenId = null;
-        let activeTokenData = {}; 
-
-        saveBtn.onclick = () => {
-            if (activeTokenId) {
-                update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
-                cardPopup.style.display = 'none';
-                activeTokenId = null;
-            }
-        };
-
-        const hexImages = { town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png' };
-        const tokenIcons = { INF: '🏃', TNK: '🚜', AIR: '✈️' };
-
-        function renderElement(id, data, type) {
-            const el = document.createElement('div');
-            el.className = type === 'hex' ? 'hex' : `token token-${data.type ? data.type.toLowerCase() : 'default'}`;
-            el.id = id;
-            el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
-            if (type === 'hex') el.style.backgroundImage = `url('${hexImages[data.type]}')`;
-            else el.innerText = tokenIcons[data.type];
-            
-            const del = document.createElement('button');
-            del.className = 'delete-btn'; del.innerText = 'X';
-            del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
-            el.appendChild(del);
-            
-            if (type === 'token') {
-                const edit = document.createElement('button');
-                edit.className = 'edit-btn'; edit.innerText = '✎';
-                edit.onclick = (e) => {
-                    e.stopPropagation();
-                    activeTokenId = id;
-                    cardPopup.style.display = 'block';
-                    cardPopup.style.left = (e.clientX + 15) + 'px';
-                    cardPopup.style.top = (e.clientY + 15) + 'px';
-                    popupTextarea.value = activeTokenData[id]?.info || data.info || "";
-                };
-                el.appendChild(edit);
-            }
-            el.onmousedown = (e) => {
-                if (e.target.className === 'delete-btn' || e.target.className === 'edit-btn') return;
-                let shiftX = e.clientX - el.getBoundingClientRect().left;
-                let shiftY = e.clientY - el.getBoundingClientRect().top;
-                document.onmousemove = (e) => {
-                    let x = e.clientX - mapContainer.getBoundingClientRect().left - shiftX;
-                    let y = e.clientY - mapContainer.getBoundingClientRect().top - shiftY;
-                    el.style.left = x + 'px'; el.style.top = y + 'px';
-                    update(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id), { top: y, left: x });
-                };
-                document.onmouseup = () => { document.onmousemove = null; };
-            };
-            mapContainer.appendChild(el);
-        }
-
-        onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
-        onChildAdded(ref(db, 'tokens'), (s) => {
-            activeTokenData[s.key] = s.val();
-            renderElement(s.key, s.val(), 'token');
-        });
+        // Обновленный словарь путей
+        const hexImages = { town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png' };
         
-        onChildChanged(ref(db, 'tokens'), (s) => {
-            activeTokenData[s.key] = s.val();
-            const el = document.getElementById(s.key); 
-            if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }
-            if (activeTokenId === s.key && cardPopup.style.display === 'block' && document.activeElement !== popupTextarea) {
-                popupTextarea.value = s.val().info || "";
-            }
-        });
-        onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }});
-        onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
-        onChildRemoved(ref(db, 'tokens'), (s) => { delete activeTokenData[s.key]; document.getElementById(s.key)?.remove(); });
-        
+        // ... (функция renderElement и логика Firebase без изменений) ...
+
+        // Добавлены обработчики для новых кнопок
         document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'town', top: 150, left: 150 });
         document.getElementById('add-field').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'field', top: 150, left: 150 });
         document.getElementById('add-forest').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'forest', top: 150, left: 150 });
+        document.getElementById('add-bushes').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'bushes', top: 150, left: 150 });
+        
         document.getElementById('add-inf').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'INF', top: 50, left: 50, info: "Пехота" });
         document.getElementById('add-tank').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'TNK', top: 50, left: 50, info: "Техника" });
         document.getElementById('add-air').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'AIR', top: 50, left: 50, info: "Авиация" });

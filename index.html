@@ -64,7 +64,7 @@
         <button id="save-btn">💾 Сохранить</button>
     </div>
     
-   <script type="module">
+<script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
@@ -77,6 +77,7 @@
         messagingSenderId: "786305486724",
         appId: "1:786305486724:web:fbc318ab0864fa821897d1"
     };
+    
     const db = getDatabase(initializeApp(firebaseConfig));
     const mapContainer = document.getElementById('map-container');
     const cardPopup = document.getElementById('card-popup');
@@ -85,14 +86,7 @@
     let activeTokenId = null;
     let activeTokenData = {};
 
-    saveBtn.onclick = () => {
-        if (activeTokenId) {
-            update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
-            cardPopup.style.display = 'none';
-            activeTokenId = null;
-        }
-    };
-
+    // Объект с путями к изображениям
     const hexImages = {
         town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png',
         village: 'assets/Деревня.png', farmland: 'assets/Пашня.png', port: 'assets/Морской Порт.png', sea: 'assets/Море.png'
@@ -105,27 +99,29 @@
         el.id = id;
         el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
         
-        // Применяем поворот, если это гекс
         if (type === 'hex') {
             el.style.backgroundImage = `url('${hexImages[data.type]}')`;
+            // Применяем текущий угол поворота из базы
             el.style.transform = `rotate(${data.rotation || 0}deg)`;
             
-            // Вращение по часовой (двойной клик правой кнопкой)
+            // Вращение по часовой (правый клик) - БЕСКОНЕЧНО
             el.oncontextmenu = (e) => {
                 e.preventDefault();
-                const newRotation = ((data.rotation || 0) + 60) % 360;
-                update(ref(db, 'hexes/' + id), { rotation: newRotation });
+                const current = data.rotation || 0;
+                update(ref(db, 'hexes/' + id), { rotation: (current + 60) % 360 });
             };
             
-            // Вращение против часовой (двойной клик левой кнопкой)
+            // Вращение против часовой (двойной левый клик) - БЕСКОНЕЧНО
             el.ondblclick = (e) => {
-                const newRotation = ((data.rotation || 0) - 60 + 360) % 360;
-                update(ref(db, 'hexes/' + id), { rotation: newRotation });
+                const current = data.rotation || 0;
+                // Добавляем 360 перед взятием остатка, чтобы избежать отрицательных чисел
+                update(ref(db, 'hexes/' + id), { rotation: (current - 60 + 360) % 360 });
             };
         } else {
             el.innerText = tokenIcons[data.type];
         }
 
+        // Остальная логика создания кнопок удаления/редактирования
         const del = document.createElement('button');
         del.className = 'delete-btn'; del.innerText = 'X';
         del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
@@ -145,6 +141,7 @@
             el.appendChild(edit);
         }
 
+        // Логика перемещения
         el.onmousedown = (e) => {
             if (e.target.className === 'delete-btn' || e.target.className === 'edit-btn') return;
             let shiftX = e.clientX - el.getBoundingClientRect().left;
@@ -160,25 +157,19 @@
         mapContainer.appendChild(el);
     }
 
+    // Синхронизация
     onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
     onChildAdded(ref(db, 'tokens'), (s) => { activeTokenData[s.key] = s.val(); renderElement(s.key, s.val(), 'token'); });
-
-    onChildChanged(ref(db, 'tokens'), (s) => {
-        activeTokenData[s.key] = s.val();
-        const el = document.getElementById(s.key);
-        if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; }
-        if (activeTokenId === s.key && cardPopup.style.display === 'block' && document.activeElement !== popupTextarea) popupTextarea.value = s.val().info || "";
-    });
 
     onChildChanged(ref(db, 'hexes'), (s) => { 
         const el = document.getElementById(s.key); 
         if(el) { 
             el.style.top = s.val().top + 'px'; 
             el.style.left = s.val().left + 'px'; 
-            el.style.transform = `rotate(${s.val().rotation || 0}deg)`; // Обновляем поворот при изменении в БД
+            el.style.transform = `rotate(${s.val().rotation || 0}deg)`; 
         }
     });
-
+    
     onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
     onChildRemoved(ref(db, 'tokens'), (s) => { delete activeTokenData[s.key]; document.getElementById(s.key)?.remove(); });
 

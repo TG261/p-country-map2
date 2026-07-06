@@ -99,15 +99,7 @@
         el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
         
         if (type === 'hex') {
-            el.style.backgroundImage = `url('${hexImages[data.type]}')`;
-            el.style.transform = `rotate(${data.rotation || 0}deg)`;
-            
-            // Вращение: Правая кнопка - по часовой, Двойной левый - против
-            el.oncontextmenu = (e) => { e.preventDefault(); update(ref(db, 'hexes/' + id), { rotation: ((data.rotation || 0) + 60) % 360 }); };
-            el.ondblclick = (e) => { update(ref(db, 'hexes/' + id), { rotation: ((data.rotation || 0) - 60 + 360) % 360 }); };
-        } else {
-            el.innerText = tokenIcons[data.type];
-        }
+           
 
         const del = document.createElement('button');
         del.className = 'delete-btn'; del.innerText = 'X';

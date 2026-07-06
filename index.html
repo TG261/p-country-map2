@@ -68,115 +68,61 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
-        authDomain: "rp-map-218d5.firebaseapp.com",
-        databaseURL: "https://rp-map-218d5-default-rtdb.firebaseio.com",
-        projectId: "rp-map-218d5",
-        storageBucket: "rp-map-218d5.firebasestorage.app",
-        messagingSenderId: "786305486724",
-        appId: "1:786305486724:web:fbc318ab0864fa821897d1"
-    };
-    
+    // ... (ваш конфиг Firebase остается прежним) ...
+    const firebaseConfig = { /* Вставьте ваш конфиг */ };
     const db = getDatabase(initializeApp(firebaseConfig));
     const mapContainer = document.getElementById('map-container');
-    const cardPopup = document.getElementById('card-popup');
-    const popupTextarea = document.getElementById('popup-textarea');
-    const saveBtn = document.getElementById('save-btn');
-    let activeTokenId = null;
-    let activeTokenData = {};
+    // ... (остальные переменные) ...
 
-    // Объект с путями к изображениям
-    const hexImages = {
-        town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png',
-        village: 'assets/Деревня.png', farmland: 'assets/Пашня.png', port: 'assets/Морской Порт.png', sea: 'assets/Море.png'
-    };
-    const tokenIcons = { INF: ' 🏃 ', TNK: ' 🚜 ', AIR: ' ✈️ ' };
+    function renderElement(id, data, type) {
+        const el = document.createElement('div');
+        el.className = type === 'hex' ? 'hex' : `token token-${data.type ? data.type.toLowerCase() : 'default'}`;
+        el.id = id;
+        el.style.top = data.top + 'px'; 
+        el.style.left = data.left + 'px';
+        
+        if (type === 'hex') {
+            el.style.backgroundImage = `url('${hexImages[data.type]}')`;
+            // Применяем начальный поворот
+            el.style.transform = `rotate(${data.rotation || 0}deg)`;
+            el.style.transition = "transform 0.1s linear";
 
-function renderElement(id, data, type) {
-    const el = document.createElement('div');
-    el.className = type === 'hex' ? 'hex' : `token token-${data.type ? data.type.toLowerCase() : 'default'}`;
-    el.id = id;
-    el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
-    
-    // Применяем текущий поворот из базы данных
-    if (type === 'hex') {
-        el.style.backgroundImage = `url('${hexImages[data.type]}')`;
-        el.style.transform = `rotate(${data.rotation || 0}deg)`;
-        el.style.transition = "transform 0.2s ease"; // Плавный поворот
-
-        // Правая кнопка: поворот по часовой (+60)
-        el.oncontextmenu = (e) => {
-            e.preventDefault(); // Убираем стандартное меню
-            const currentRotation = data.rotation || 0;
-            const newRotation = (currentRotation + 60) % 360;
-            update(ref(db, 'hexes/' + id), { rotation: newRotation });
-        };
-
-        // Левая кнопка (двойной клик): поворот против часовой (-60)
-        el.ondblclick = (e) => {
-            const currentRotation = data.rotation || 0;
-            // Учитываем отрицательные значения до -360
-            let newRotation = currentRotation - 60;
-            if (newRotation <= -360) newRotation = 0; 
-            update(ref(db, 'hexes/' + id), { rotation: newRotation });
-        };
-    } else {
-        el.innerText = tokenIcons[data.type];
-    }
-    
-        // Остальная логика создания кнопок удаления/редактирования
-        const del = document.createElement('button');
-        del.className = 'delete-btn'; del.innerText = 'X';
-        del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
-        el.appendChild(del);
-
-        if (type === 'token') {
-            const edit = document.createElement('button');
-            edit.className = 'edit-btn'; edit.innerText = ' ✎ ';
-            edit.onclick = (e) => {
-                e.stopPropagation();
-                activeTokenId = id;
-                cardPopup.style.display = 'block';
-                cardPopup.style.left = (e.clientX + 15) + 'px';
-                cardPopup.style.top = (e.clientY + 15) + 'px';
-                popupTextarea.value = activeTokenData[id]?.info || data.info || "";
+            // ПРАВАЯ КНОПКА: Вращение по часовой (на 60°)
+            el.oncontextmenu = (e) => {
+                e.preventDefault();
+                const current = data.rotation || 0;
+                update(ref(db, 'hexes/' + id), { rotation: (current + 60) % 360 });
             };
-            el.appendChild(edit);
+
+            // ЛЕВАЯ КНОПКА (Двойной клик): Вращение против часовой (-60°)
+            el.ondblclick = (e) => {
+                e.preventDefault();
+                const current = data.rotation || 0;
+                // Добавляем 360 перед остатком, чтобы корректно обрабатывать отрицательные углы
+                update(ref(db, 'hexes/' + id), { rotation: (current - 60 + 360) % 360 });
+            };
+        } else {
+            el.innerText = tokenIcons[data.type];
         }
 
-        // Логика перемещения
-        el.onmousedown = (e) => {
-            if (e.target.className === 'delete-btn' || e.target.className === 'edit-btn') return;
-            let shiftX = e.clientX - el.getBoundingClientRect().left;
-            let shiftY = e.clientY - el.getBoundingClientRect().top;
-            document.onmousemove = (e) => {
-                let x = e.clientX - mapContainer.getBoundingClientRect().left - shiftX;
-                let y = e.clientY - mapContainer.getBoundingClientRect().top - shiftY;
-                el.style.left = x + 'px'; el.style.top = y + 'px';
-                update(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id), { top: y, left: x });
-            };
-            document.onmouseup = () => { document.onmousemove = null; };
-        };
+        // ... (код для кнопок удаления и перетаскивания сохраните без изменений) ...
         mapContainer.appendChild(el);
     }
 
-    // Синхронизация
-    onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
-    onChildAdded(ref(db, 'tokens'), (s) => { activeTokenData[s.key] = s.val(); renderElement(s.key, s.val(), 'token'); });
-    
+    // Слушатель обновлений: теперь при изменении rotation гекс будет поворачиваться
     onChildChanged(ref(db, 'hexes'), (s) => { 
-    const el = document.getElementById(s.key); 
-    if(el) { 
-        el.style.top = s.val().top + 'px'; 
-        el.style.left = s.val().left + 'px'; 
-        el.style.transform = `rotate(${s.val().rotation || 0}deg)`; // Добавьте эту строку
-    }
-});
-    
-    onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
-    onChildRemoved(ref(db, 'tokens'), (s) => { delete activeTokenData[s.key]; document.getElementById(s.key)?.remove(); });
+        const el = document.getElementById(s.key); 
+        if(el) { 
+            el.style.top = s.val().top + 'px'; 
+            el.style.left = s.val().left + 'px'; 
+            el.style.transform = `rotate(${s.val().rotation || 0}deg)`; 
+        }
+    });
 
+    // ОБНОВЛЕНИЕ КНОПОК ДОБАВЛЕНИЯ: Добавьте , rotation: 0 в каждый вызов set
+    document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'town', top: 150, left: 150, rotation: 0 });
+    // ... (сделайте так же для всех остальных гексов: field, forest, bushes, village, farmland, port, sea)
+    
     document.getElementById('add-town').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'town', top: 150, left: 150, rotation: 0 });
     document.getElementById('add-field').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'field', top: 150, left: 150, rotation: 0 });
     document.getElementById('add-forest').onclick = () => set(ref(db, 'hexes/' + Date.now()), { type: 'forest', top: 150, left: 150, rotation: 0 });

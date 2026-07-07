@@ -7,17 +7,17 @@
 <style>
     body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; display: flex; gap: 20px; }
     
-    .sidebar {
-        width: 320px;
-        background: #2d2d2d;
-        padding: 20px;
-        border-radius: 8px;
-        border: 1px solid #444;
-        height: 85vh;
-        overflow-y: auto;
-        transition: transform 0.3s ease;
-        position: relative;
-    }
+   .sidebar {
+    width: 280px; 
+    background: #2d2d2d; 
+    padding: 20px; 
+    border-radius: 8px; 
+    border: 1px solid #444; 
+    height: fit-content;
+    transition: transform 0.3s ease;
+    position: relative;
+    overflow-x: hidden; /* Это уберет горизонтальный ползунок */
+}
     
     .hex-grid {
         display: grid;

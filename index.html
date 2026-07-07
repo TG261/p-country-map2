@@ -26,21 +26,24 @@
             transform: translateX(-340px);
         }
 
-      #toggle-btn {
+    #toggle-btn {
     position: absolute;
-    right: -40px;
-    top: 10px; /* Увеличьте отступ, если кнопка скрыта */
-    z-index: 100; /* Добавьте это, чтобы кнопка была видна */
+    right: -40px; /* Положение кнопки справа от панели */
+    top: 0;
     background: #444;
     color: white;
     padding: 10px;
     cursor: pointer;
     border: none;
     border-radius: 0 4px 4px 0;
+    z-index: 1000; /* ВАЖНО: кнопка будет поверх всех элементов */
 }
 
-        .sidebar h2 { font-size: 18px; margin-top: 0; text-align: center; margin-bottom: 20px; }
-        
+/* Убедитесь, что у .sidebar есть relative, чтобы кнопка позиционировалась относительно него */
+.sidebar {
+    position: relative;
+    /* ... остальные ваши стили ... */
+}
         /* Сетка кнопок в 2 колонки */
         .hex-grid {
             display: grid;

@@ -26,17 +26,18 @@
             transform: translateX(-340px);
         }
 
-    #toggle-btn {
+  #toggle-btn {
     position: absolute;
-    right: -240px; /* Положение кнопки справа от панели */
-    top: 0;
-    background: #444;
+    right: 10px; /* Было -40px, меняем на 10px, чтобы кнопка была внутри панели */
+    top: 10px;   /* Немного отступим от верха */
+    background: #555;
     color: white;
-    padding: 10px;
+    padding: 10px 15px;
     cursor: pointer;
     border: none;
-    border-radius: 0 4px 4px 0;
-    z-index: 1000; /* ВАЖНО: кнопка будет поверх всех элементов */
+    border-radius: 4px;
+    z-index: 9999; /* Чтобы была поверх всех элементов */
+    display: block !important; /* Принудительно показываем */
 }
 
 /* Убедитесь, что у .sidebar есть relative, чтобы кнопка позиционировалась относительно него */

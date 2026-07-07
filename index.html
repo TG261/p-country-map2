@@ -6,15 +6,15 @@
 <title>Система управления картой</title>
 <style>
 body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; display: flex; gap: 20px; }
-/* Стили для боковой панели с прокруткой */
+/* Стили для боковой панели: добавлена фиксированная высота и прокрутка */
 .sidebar {
     width: 280px;
     background: #2d2d2d;
     padding: 20px;
     border-radius: 8px;
     border: 1px solid #444;
-    height: 80vh; 
-    overflow-y: auto;
+    height: 85vh;        /* Высота панели ограничена высотой экрана */
+    overflow-y: auto;    /* Включает вертикальную прокрутку только для панели */
     transition: transform 0.3s ease;
     position: relative;
 }

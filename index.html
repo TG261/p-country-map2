@@ -123,7 +123,13 @@
     let activeTokenId = null;
     let hexToRotateId = null;
 
-    saveBtn.onclick = () => { if (activeTokenId) { update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value }); cardPopup.style.display = 'none'; } };
+   saveBtn.onclick = () => {
+if (activeTokenId) {
+update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
+cardPopup.style.display = 'none';
+activeTokenId = null;
+}
+};;
     applyRotationBtn.onclick = () => { if (hexToRotateId) { update(ref(db, 'hexes/' + hexToRotateId), { rotation: parseInt(rotationInput.value) || 0 }); rotationPopup.style.display = 'none'; } };
 
     const hexImages = {

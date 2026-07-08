@@ -6,46 +6,27 @@
 <title>Игровая карта</title>
 <style>
     body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; display: flex; justify-content: space-between; overflow-x: hidden; }
-    
-    .sidebar {
-        width: 300px;
-        background: #2d2d2d;
-        padding: 20px;
-        border-radius: 8px;
-        border: 1px solid #444;
-        height: 85vh;
-        overflow-y: auto;
-        position: relative;
-    }
-
+    .sidebar { width: 300px; background: #2d2d2d; padding: 20px; border-radius: 8px; border: 1px solid #444; height: 85vh; overflow-y: auto; position: relative; }
     .hex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    
     .main-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; padding: 0 20px; }
-    
     button { padding: 10px; font-weight: bold; cursor: pointer; border: none; border-radius: 4px; display: flex; align-items: center; gap: 5px; font-size: 12px; }
-    
     .btn-hex { background: #5d4037; color: white; justify-content: center; width: 100%; }
     .btn-unit { background: #444; color: white; width: 100%; justify-content: center; }
-
     #map-container { position: relative; width: 1000px; height: 600px; background: #252525; border: 1px solid #444; overflow: hidden; border-radius: 4px; margin-top: 20px; }
-    
     .hex { position: absolute; width: 120px; height: 120px; background-size: cover; cursor: grab; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; display: flex; align-items: center; justify-content: center; }
     .token { position: absolute; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: grab; border: 2px solid white; z-index: 2; background: #333; }
-
     .delete-btn, .edit-btn, .rotate-btn { border-radius: 50%; width: 26px; height: 26px; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; color: white; padding: 0; position: absolute; top: 50%; left: 50%; z-index: 5; }
     .token .delete-btn { top: -8px; right: -8px; }
     .token .edit-btn { top: 25px; right: -8px; }
     .hex .delete-btn { background: #B51010; display: none; transform: translate(-140%, -50%); }
     .hex .rotate-btn { background: #795548; display: none; transform: translate(40%, -50%); }
     .hex:hover .delete-btn, .hex:hover .rotate-btn { display: flex; }
-
     #card-popup, #rotation-popup { display: none; position: fixed; background: #333; border: 1px solid #fff; padding: 15px; z-index: 10000; border-radius: 5px; color: white; }
     #popup-textarea { width: 100%; height: 100px; background: #222; color: white; border: 1px solid #555; resize: none; margin-top: 5px; }
     #save-btn, #apply-rotation { width: 100%; margin-top: 5px; padding: 5px; background: #4CAF50; border: none; cursor: pointer; color: white; font-weight: bold; }
 </style>
 </head>
 <body>
-
 <div class="sidebar" id="sidebar-left">
     <h2>Гексы</h2>
     <div class="hex-grid">
@@ -66,19 +47,17 @@
         <button class="btn-hex" id="add-road">🛣️ Дорога</button>
     </div>
 </div>
-
 <div class="main-content">
     <h1>Система управления картой</h1>
     <div id="map-container"></div>
 </div>
-
 <div class="sidebar" id="sidebar-right">
     <h2>Фишки</h2>
     <div class="hex-grid">
         <button class="btn-unit" id="add-inf">🏃 Пехота</button>
         <button class="btn-unit" id="add-tank">🚜 Танк</button>
         <button class="btn-unit" id="add-air">✈️ Авиация</button>
-        <button class="btn-unit" id="add-art">💣 Артилерия</button>
+        <button class="btn-unit" id="add-art">💣 Артиллерия</button>
         <button class="btn-unit" id="add-pto">⚡ ПТО</button>
         <button class="btn-unit" id="add-zsu">💥 ЗСУ</button>
         <button class="btn-unit" id="add-truck">🚚 Снабжение</button>
@@ -86,7 +65,6 @@
         <button class="btn-unit" id="add-train">🚂 Поезд</button>
     </div>
 </div>
-
 <div id="card-popup">
     <div style="font-weight: bold; margin-bottom: 5px;">КАРТОЧКА</div>
     <textarea id="popup-textarea"></textarea>
@@ -100,17 +78,14 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
+    
     const firebaseConfig = {
         apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
         authDomain: "rp-map-218d5.firebaseapp.com",
         databaseURL: "https://rp-map-218d5-default-rtdb.firebaseio.com",
-        projectId: "rp-map-218d5",
-        storageBucket: "rp-map-218d5.firebasestorage.app",
-        messagingSenderId: "786305486724",
-        appId: "1:786305486724:web:fbc318ab0864fa821897d1"
+        projectId: "rp-map-218d5"
     };
-    
+
     const db = getDatabase(initializeApp(firebaseConfig));
     const mapContainer = document.getElementById('map-container');
     const cardPopup = document.getElementById('card-popup');
@@ -119,12 +94,23 @@
     const rotationPopup = document.getElementById('rotation-popup');
     const rotationInput = document.getElementById('rotation-input');
     const applyRotationBtn = document.getElementById('apply-rotation');
-
+    
     let activeTokenId = null;
     let hexToRotateId = null;
 
-    saveBtn.onclick = () => { if (activeTokenId) { update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value }); cardPopup.style.display = 'none'; } };
-    applyRotationBtn.onclick = () => { if (hexToRotateId) { update(ref(db, 'hexes/' + hexToRotateId), { rotation: parseInt(rotationInput.value) || 0 }); rotationPopup.style.display = 'none'; } };
+    saveBtn.onclick = () => { 
+        if (activeTokenId) { 
+            update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value }); 
+            cardPopup.style.display = 'none'; 
+        } 
+    };
+
+    applyRotationBtn.onclick = () => { 
+        if (hexToRotateId) { 
+            update(ref(db, 'hexes/' + hexToRotateId), { rotation: parseInt(rotationInput.value) || 0 });
+            rotationPopup.style.display = 'none'; 
+        } 
+    };
 
     const hexImages = {
         town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png',
@@ -143,14 +129,18 @@
             el.style.backgroundImage = `url('${hexImages[data.type]}')`;
             el.style.transform = `rotate(${data.rotation || 0}deg)`;
         } else { el.innerText = tokenIcons[data.type]; }
-
+        
         const del = document.createElement('button'); del.className = 'delete-btn'; del.innerText = '✖';
         del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
         el.appendChild(del);
 
         if (type === 'token') {
             const edit = document.createElement('button'); edit.className = 'edit-btn'; edit.innerText = '✎';
-            edit.onclick = (e) => { e.stopPropagation(); activeTokenId = id; cardPopup.style.display = 'block'; cardPopup.style.left = (e.clientX + 10) + 'px'; cardPopup.style.top = (e.clientY + 10) + 'px'; popupTextarea.value = data.info || ""; };
+            edit.onclick = (e) => { 
+                e.stopPropagation(); activeTokenId = id; cardPopup.style.display = 'block'; 
+                cardPopup.style.left = (e.clientX + 10) + 'px'; cardPopup.style.top = (e.clientY + 10) + 'px'; 
+                popupTextarea.value = data.info || ""; 
+            };
             el.appendChild(edit);
         } else {
             const rot = document.createElement('button'); rot.className = 'rotate-btn'; rot.innerText = '↻';
@@ -160,11 +150,9 @@
 
         el.onmousedown = (e) => {
             if (e.target.tagName === 'BUTTON') return;
-            let shiftX = e.clientX - el.getBoundingClientRect().left;
-            let shiftY = e.clientY - el.getBoundingClientRect().top;
             document.onmousemove = (e) => {
-                let x = e.clientX - mapContainer.getBoundingClientRect().left - shiftX;
-                let y = e.clientY - mapContainer.getBoundingClientRect().top - shiftY;
+                let x = e.clientX - mapContainer.getBoundingClientRect().left - 25;
+                let y = e.clientY - mapContainer.getBoundingClientRect().top - 25;
                 el.style.left = x + 'px'; el.style.top = y + 'px';
                 update(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id), { top: y, left: x });
             };
@@ -175,8 +163,25 @@
 
     onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
     onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
-    onChildChanged(ref(db, 'tokens'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; } });
-    onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; el.style.transform = `rotate(${s.val().rotation || 0}deg)`; } });
+    
+    // Автоматическое обновление позиции и данных без перезагрузки
+    onChildChanged(ref(db, 'tokens'), (s) => { 
+        const el = document.getElementById(s.key); 
+        if(el) { 
+            el.style.top = s.val().top + 'px'; 
+            el.style.left = s.val().left + 'px'; 
+        } 
+    });
+    
+    onChildChanged(ref(db, 'hexes'), (s) => { 
+        const el = document.getElementById(s.key); 
+        if(el) { 
+            el.style.top = s.val().top + 'px'; 
+            el.style.left = s.val().left + 'px'; 
+            el.style.transform = `rotate(${s.val().rotation || 0}deg)`; 
+        } 
+    });
+
     onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
     onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());
 
@@ -198,7 +203,7 @@
     document.getElementById('add-hill').onclick = () => addHex('hill');
     document.getElementById('add-swamp').onclick = () => addHex('swamp');
     document.getElementById('add-road').onclick = () => addHex('road');
-    
+
     document.getElementById('add-inf').onclick = () => addToken('INF', 'Пехота');
     document.getElementById('add-tank').onclick = () => addToken('TNK', 'Техника');
     document.getElementById('add-air').onclick = () => addToken('AIR', 'Авиация');

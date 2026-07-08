@@ -6,7 +6,6 @@
 <title>Игровая карта</title>
 <style>
 body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; display: flex; gap: 20px; overflow-x: hidden; }
-
 .sidebar {
     width: 320px;
     background: #2d2d2d;
@@ -20,7 +19,6 @@ body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin:
     position: relative;
     flex-shrink: 0;
 }
-
 .sidebar.hidden { transform: translateX(-340px); }
 #toggle-btn {
     position: absolute;
@@ -35,39 +33,20 @@ body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin:
     z-index: 9999;
     display: block !important;
 }
-
 .hex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .main-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; }
-.controls-wrapper { display: flex; gap: 20px; margin-bottom: 20px; }
-
+.controls-wrapper { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; justify-content: center; }
 button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-radius: 4px; display: flex; align-items: center; gap: 5px; font-size: 11px; }
 .btn-hex { background: #5d4037; color: white; justify-content: center; width: 100%; }
-.btn-inf { background: #4CAF50; color: white; padding: 10px 20px; }
-.btn-tank { background: #d32f2f; color: white; padding: 10px 20px; }
-.btn-air { background: #FFC107; color: black; padding: 10px 20px; }
+.btn-unit { background: #444; color: white; padding: 8px 12px; }
 
 #map-container { position: relative; width: 1000px; height: 600px; background: #252525; border: 1px solid #444; overflow: hidden; border-radius: 4px; }
+.hex { position: absolute; width: 120px; height: 120px; background-size: cover; cursor: grab; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; display: flex; align-items: center; justify-content: center; }
+.token { position: absolute; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: grab; border: 2px solid white; z-index: 2; background: #333; }
 
-.hex { 
-    position: absolute; width: 120px; height: 120px; background-size: cover; cursor: grab;
-    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); 
-    z-index: 1; display: flex; align-items: center; justify-content: center; 
-}
-.token { 
-    position: absolute; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: grab;
-    border: 2px solid white; z-index: 2; 
-}
-
-/* Центрирование кнопок внутри гекса */
-.delete-btn, .edit-btn, .rotate-btn { 
-    border-radius: 50%; width: 26px; height: 26px; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer;
-    border: 2px solid white; color: white; padding: 0; position: absolute;
-    top: 50%; left: 50%; z-index: 5;
-}
-
+.delete-btn, .edit-btn, .rotate-btn { border-radius: 50%; width: 26px; height: 26px; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; color: white; padding: 0; position: absolute; top: 50%; left: 50%; z-index: 5; }
 .token .delete-btn { top: -8px; right: -8px; }
 .token .edit-btn { top: 25px; right: -8px; }
-
 .hex .delete-btn { background: #B51010; display: none; transform: translate(-140%, -50%); }
 .hex .rotate-btn { background: #795548; display: none; transform: translate(40%, -50%); }
 .hex:hover .delete-btn, .hex:hover .rotate-btn { display: flex; }
@@ -79,41 +58,45 @@ button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-
 </head>
 <body>
 <div class="sidebar" id="sidebar">
-    <button id="toggle-btn">  ☰  </button>
-    <h2>Добавить/Выбрать гекс</h2>
+    <button id="toggle-btn">☰</button>
+    <h2>Гексы</h2>
     <div class="hex-grid">
-        <button class="btn-hex" id="add-town"> 🏰 Город</button>
-        <button class="btn-hex" id="add-field"> 🌱 Равнина</button>
-        <button class="btn-hex" id="add-forest"> 🌲 Лес</button>
-        <button class="btn-hex" id="add-bushes"> 🌿 Кусты</button>
-        <button class="btn-hex" id="add-village"> 🏠 Деревня</button>
-        <button class="btn-hex" id="add-farmland"> 🌾 Пашня</button>
-        <button class="btn-hex" id="add-port"> ⚓  Порт </button>
-        <button class="btn-hex" id="add-sea"> 🌊 Море</button>
-        <button class="btn-hex" id="add-prospekt"> 🏙️  Проспект</button>
-        <button class="btn-hex" id="add-vokzal"> 🚉  Вокзал</button>
-        <button class="btn-hex" id="add-railway"> 🛤️ Линия Ж/Д</button>
-        <button class="btn-hex" id="add-turn"> ↪️ Поворот</button>
-        <button class="btn-hex" id="add-hill"> ⛰️ Холм</button>
-        <button class="btn-hex" id="add-swamp"> 💧 Болото</button>
-        <button class="btn-hex" id="add-road"> 🛣️ Дорога</button>
-        <button class="btn-hex" id="add-turn-prospekt"> 🏙️  П.Проспект</button>
-        <button class="btn-hex" id="add-turn-railway"> 🛤️  П.Ж/Д</button>
+        <button class="btn-hex" id="add-town">🏰 Город</button>
+        <button class="btn-hex" id="add-field">🌱 Равнина</button>
+        <button class="btn-hex" id="add-forest">🌲 Лес</button>
+        <button class="btn-hex" id="add-bushes">🌿 Кусты</button>
+        <button class="btn-hex" id="add-village">🏠 Деревня</button>
+        <button class="btn-hex" id="add-farmland">🌾 Пашня</button>
+        <button class="btn-hex" id="add-port">⚓ Порт</button>
+        <button class="btn-hex" id="add-sea">🌊 Море</button>
+        <button class="btn-hex" id="add-prospekt">🏙️ Проспект</button>
+        <button class="btn-hex" id="add-vokzal">🚉 Вокзал</button>
+        <button class="btn-hex" id="add-railway">🛤️ Ж/Д</button>
+        <button class="btn-hex" id="add-turn">↪️ Поворот</button>
+        <button class="btn-hex" id="add-hill">⛰️ Холм</button>
+        <button class="btn-hex" id="add-swamp">💧 Болото</button>
+        <button class="btn-hex" id="add-road">🛣️ Дорога</button>
     </div>
 </div>
 <div class="main-content">
     <h1>Система управления картой</h1>
     <div class="controls-wrapper">
-        <button class="btn-inf" id="add-inf">  🏃  + Пехота</button>
-        <button class="btn-tank" id="add-tank">  🚜  + Техника</button>
-        <button class="btn-air" id="add-air">  ✈️  + Авиация</button>
+        <button class="btn-unit" id="add-inf">🏃 Пехота</button>
+        <button class="btn-unit" id="add-tank">🚜 Техника</button>
+        <button class="btn-unit" id="add-air">✈️ Авиация</button>
+        <button class="btn-unit" id="add-art">💣 Арт</button>
+        <button class="btn-unit" id="add-pto">⚡ ПТО</button>
+        <button class="btn-unit" id="add-zsu">💥 ЗСУ</button>
+        <button class="btn-unit" id="add-truck">🚚 Снаб</button>
+        <button class="btn-unit" id="add-fleet">🚢 Флот</button>
+        <button class="btn-unit" id="add-train">🚂 Поезд</button>
     </div>
     <div id="map-container"></div>
 </div>
 <div id="card-popup">
     <div style="font-weight: bold; border-bottom: 1px solid #000; margin-bottom: 5px;">КАРТОЧКА</div>
     <textarea id="popup-textarea"></textarea>
-    <button id="save-btn">  💾  Сохранить</button>
+    <button id="save-btn">💾 Сохранить</button>
 </div>
 <div id="rotation-popup" style="display: none; position: fixed; background: #333; border: 1px solid #fff; padding: 10px; z-index: 10000; border-radius: 5px;">
     <input type="number" id="rotation-input" placeholder="Градусы" style="width: 70px;">
@@ -152,14 +135,13 @@ button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-
         town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png',
         village: 'assets/Деревня.png', farmland: 'assets/Пашня.png', port: 'assets/Морской Порт.png', sea: 'assets/Море.png',
         prospekt: 'assets/Проспект.png', vokzal: 'assets/Вокзал.png', railway: 'assets/Железная дорога.png',
-        turn: 'assets/Поворот.png', hill: 'assets/Холм.png', swamp: 'assets/Болото.png', road: 'assets/Дорога.png',
-        turn_prospekt: 'assets/Поворот Проспект.png', turn_railway: 'assets/Поворот ЖД.png'
+        turn: 'assets/Поворот.png', hill: 'assets/Холм.png', swamp: 'assets/Болото.png', road: 'assets/Дорога.png'
     };
-    const tokenIcons = { INF: '  🏃  ', TNK: '  🚜  ', AIR: '  ✈️  ' };
+    const tokenIcons = { INF: '🏃', TNK: '🚜', AIR: '✈️', ART: '💣', PTO: '⚡', ZSU: '💥', TRUCK: '🚚', FLEET: '🚢', TRAIN: '🚂' };
 
     function renderElement(id, data, type) {
         const el = document.createElement('div');
-        el.className = type === 'hex' ? 'hex' : `token token-${data.type ? data.type.toLowerCase() : 'default'}`;
+        el.className = type === 'hex' ? 'hex' : 'token';
         el.id = id;
         el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
         if (type === 'hex') {
@@ -172,7 +154,7 @@ button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-
         el.appendChild(del);
 
         if (type === 'token') {
-            const edit = document.createElement('button'); edit.className = 'edit-btn'; edit.innerText = '  ✎  ';
+            const edit = document.createElement('button'); edit.className = 'edit-btn'; edit.innerText = '✎';
             edit.onclick = (e) => { e.stopPropagation(); activeTokenId = id; cardPopup.style.display = 'block'; cardPopup.style.left = (e.clientX + 15) + 'px'; cardPopup.style.top = (e.clientY + 15) + 'px'; popupTextarea.value = activeTokenData[id]?.info || data.info || ""; };
             el.appendChild(edit);
         } else {
@@ -198,12 +180,14 @@ button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-
 
     onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
     onChildAdded(ref(db, 'tokens'), (s) => { activeTokenData[s.key] = s.val(); renderElement(s.key, s.val(), 'token'); });
-    onChildChanged(ref(db, 'tokens'), (s) => { activeTokenData[s.key] = s.val(); const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; } if (activeTokenId === s.key && cardPopup.style.display === 'block' && document.activeElement !== popupTextarea) popupTextarea.value = s.val().info || ""; });
+    onChildChanged(ref(db, 'tokens'), (s) => { activeTokenData[s.key] = s.val(); const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; } });
     onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; el.style.transform = `rotate(${s.val().rotation || 0}deg)`; } });
     onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
     onChildRemoved(ref(db, 'tokens'), (s) => { delete activeTokenData[s.key]; document.getElementById(s.key)?.remove(); });
 
     const addHex = (type) => set(ref(db, 'hexes/' + Date.now()), { type: type, top: 150, left: 150, rotation: 0 });
+    const addToken = (type, info) => set(ref(db, 'tokens/' + Date.now()), { type: type, top: 50, left: 50, info: info });
+
     document.getElementById('add-town').onclick = () => addHex('town');
     document.getElementById('add-field').onclick = () => addHex('field');
     document.getElementById('add-forest').onclick = () => addHex('forest');
@@ -219,11 +203,16 @@ button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-
     document.getElementById('add-hill').onclick = () => addHex('hill');
     document.getElementById('add-swamp').onclick = () => addHex('swamp');
     document.getElementById('add-road').onclick = () => addHex('road');
-    document.getElementById('add-turn-prospekt').onclick = () => addHex('turn_prospekt');
-    document.getElementById('add-turn-railway').onclick = () => addHex('turn_railway');
-    document.getElementById('add-inf').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'INF', top: 50, left: 50, info: "Пехота" });
-    document.getElementById('add-tank').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'TNK', top: 50, left: 50, info: "Техника" });
-    document.getElementById('add-air').onclick = () => set(ref(db, 'tokens/' + Date.now()), { type: 'AIR', top: 50, left: 50, info: "Авиация" });
+    
+    document.getElementById('add-inf').onclick = () => addToken('INF', 'Пехота');
+    document.getElementById('add-tank').onclick = () => addToken('TNK', 'Техника');
+    document.getElementById('add-air').onclick = () => addToken('AIR', 'Авиация');
+    document.getElementById('add-art').onclick = () => addToken('ART', 'Артиллерия');
+    document.getElementById('add-pto').onclick = () => addToken('PTO', 'ПТО');
+    document.getElementById('add-zsu').onclick = () => addToken('ZSU', 'ЗСУ');
+    document.getElementById('add-truck').onclick = () => addToken('TRUCK', 'Снабжение');
+    document.getElementById('add-fleet').onclick = () => addToken('FLEET', 'Флот');
+    document.getElementById('add-train').onclick = () => addToken('TRAIN', 'Поезд');
 </script>
 </body>
 </html>

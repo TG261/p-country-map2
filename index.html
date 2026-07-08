@@ -68,7 +68,7 @@ button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-
 .token .delete-btn { top: -8px; right: -8px; }
 .token .edit-btn { top: 25px; right: -8px; }
 
-.hex .delete-btn { background: #E8E8E8; display: none; transform: translate(-140%, -50%); }
+.hex .delete-btn { background: #B51010; display: none; transform: translate(-140%, -50%); }
 .hex .rotate-btn { background: #795548; display: none; transform: translate(40%, -50%); }
 .hex:hover .delete-btn, .hex:hover .rotate-btn { display: flex; }
 
@@ -167,7 +167,7 @@ button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-
             el.style.transform = `rotate(${data.rotation || 0}deg)`;
         } else { el.innerText = tokenIcons[data.type]; }
 
-        const del = document.createElement('button'); del.className = 'delete-btn'; del.innerText = '❌';
+        const del = document.createElement('button'); del.className = 'delete-btn'; del.innerText = '✖';
         del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
         el.appendChild(del);
 

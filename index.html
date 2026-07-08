@@ -57,10 +57,10 @@
         <button class="btn-unit" id="add-inf">🏃 Пехота</button>
         <button class="btn-unit" id="add-tank">🚜 Танк</button>
         <button class="btn-unit" id="add-air">✈️ Авиация</button>
-        <button class="btn-unit" id="add-art">💣 Артиллерия</button>
+        <button class="btn-unit" id="add-art">💣 Арт</button>
         <button class="btn-unit" id="add-pto">⚡ ПТО</button>
         <button class="btn-unit" id="add-zsu">💥 ЗСУ</button>
-        <button class="btn-unit" id="add-truck">🚚 Снабжение</button>
+        <button class="btn-unit" id="add-truck">🚚 Снаб</button>
         <button class="btn-unit" id="add-fleet">🚢 Флот</button>
         <button class="btn-unit" id="add-train">🚂 Поезд</button>
     </div>
@@ -81,12 +81,10 @@
     
     const firebaseConfig = {
         apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
-        authDomain: "rp-map-218d5.firebaseapp.com",
         databaseURL: "https://rp-map-218d5-default-rtdb.firebaseio.com",
         projectId: "rp-map-218d5"
     };
 
-    // Исправление: явно инициализируем app и передаем его в getDatabase с URL
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app, "https://rp-map-218d5-default-rtdb.firebaseio.com");
 
@@ -101,16 +99,19 @@
     let activeTokenId = null;
     let hexToRotateId = null;
 
-    saveBtn.onclick = () => { if (activeTokenId) { update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value }); cardPopup.style.display = 'none'; } };
-    applyRotationBtn.onclick = () => { if (hexToRotateId) { update(ref(db, 'hexes/' + hexToRotateId), { rotation: parseInt(rotationInput.value) || 0 }); rotationPopup.style.display = 'none'; } };
-
-    const hexImages = {
-        town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png',
-        village: 'assets/Деревня.png', farmland: 'assets/Пашня.png', port: 'assets/Морской Порт.png', sea: 'assets/Море.png',
-        prospekt: 'assets/Проспект.png', vokzal: 'assets/Вокзал.png', railway: 'assets/Железная дорога.png',
-        turn: 'assets/Поворот.png', hill: 'assets/Холм.png', swamp: 'assets/Болото.png', road: 'assets/Дорога.png'
+    saveBtn.onclick = () => { 
+        if (activeTokenId) { 
+            update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value }); 
+            cardPopup.style.display = 'none'; 
+        } 
     };
-    const tokenIcons = { INF: '🏃', TNK: '🚜', AIR: '✈️', ART: '💣', PTO: '⚡', ZSU: '💥', TRUCK: '🚚', FLEET: '🚢', TRAIN: '🚂' };
+
+    applyRotationBtn.onclick = () => { 
+        if (hexToRotateId) { 
+            update(ref(db, 'hexes/' + hexToRotateId), { rotation: parseInt(rotationInput.value) || 0 });
+            rotationPopup.style.display = 'none'; 
+        } 
+    };
 
     function renderElement(id, data, type) {
         const el = document.createElement('div');
@@ -118,9 +119,8 @@
         el.id = id;
         el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
         if (type === 'hex') {
-            el.style.backgroundImage = `url('${hexImages[data.type]}')`;
             el.style.transform = `rotate(${data.rotation || 0}deg)`;
-        } else { el.innerText = tokenIcons[data.type]; }
+        } else { el.innerText = data.type; }
         
         const del = document.createElement('button'); del.className = 'delete-btn'; del.innerText = '✖';
         del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
@@ -135,6 +135,7 @@
             rot.onclick = (e) => { e.stopPropagation(); hexToRotateId = id; rotationPopup.style.display = 'block'; rotationPopup.style.left = (e.clientX + 10) + 'px'; rotationPopup.style.top = (e.clientY + 10) + 'px'; };
             el.appendChild(rot);
         }
+        
         el.onmousedown = (e) => {
             if (e.target.tagName === 'BUTTON') return;
             document.onmousemove = (e) => {
@@ -150,38 +151,45 @@
 
     onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
     onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
-    onChildChanged(ref(db, 'tokens'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; } });
-    onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; el.style.transform = `rotate(${s.val().rotation || 0}deg)`; } });
+    
+    // Мгновенное обновление данных
+    onChildChanged(ref(db, 'tokens'), (s) => { 
+        const el = document.getElementById(s.key); 
+        if(el) { 
+            el.style.top = s.val().top + 'px'; 
+            el.style.left = s.val().left + 'px'; 
+            if (activeTokenId === s.key && document.activeElement !== popupTextarea) {
+                popupTextarea.value = s.val().info || "";
+            }
+        } 
+    });
+
+    onChildChanged(ref(db, 'hexes'), (s) => { 
+        const el = document.getElementById(s.key); 
+        if(el) { 
+            el.style.top = s.val().top + 'px'; 
+            el.style.left = s.val().left + 'px'; 
+            el.style.transform = `rotate(${s.val().rotation || 0}deg)`; 
+        } 
+    });
+
     onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
     onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());
 
     const addHex = (type) => set(ref(db, 'hexes/' + Date.now()), { type: type, top: 150, left: 150, rotation: 0 });
-    const addToken = (type, info) => set(ref(db, 'tokens/' + Date.now()), { type: type, top: 50, left: 50, info: info });
+    const addToken = (type) => set(ref(db, 'tokens/' + Date.now()), { type: type, top: 50, left: 50, info: type });
 
     document.getElementById('add-town').onclick = () => addHex('town');
     document.getElementById('add-field').onclick = () => addHex('field');
-    document.getElementById('add-forest').onclick = () => addHex('forest');
-    document.getElementById('add-bushes').onclick = () => addHex('bushes');
-    document.getElementById('add-village').onclick = () => addHex('village');
-    document.getElementById('add-farmland').onclick = () => addHex('farmland');
-    document.getElementById('add-port').onclick = () => addHex('port');
-    document.getElementById('add-sea').onclick = () => addHex('sea');
-    document.getElementById('add-prospekt').onclick = () => addHex('prospekt');
-    document.getElementById('add-vokzal').onclick = () => addHex('vokzal');
-    document.getElementById('add-railway').onclick = () => addHex('railway');
-    document.getElementById('add-turn').onclick = () => addHex('turn');
-    document.getElementById('add-hill').onclick = () => addHex('hill');
-    document.getElementById('add-swamp').onclick = () => addHex('swamp');
-    document.getElementById('add-road').onclick = () => addHex('road');
-    document.getElementById('add-inf').onclick = () => addToken('INF', 'Пехота');
-    document.getElementById('add-tank').onclick = () => addToken('TNK', 'Техника');
-    document.getElementById('add-air').onclick = () => addToken('AIR', 'Авиация');
-    document.getElementById('add-art').onclick = () => addToken('ART', 'Артиллерия');
-    document.getElementById('add-pto').onclick = () => addToken('PTO', 'ПТО');
-    document.getElementById('add-zsu').onclick = () => addToken('ZSU', 'ЗСУ');
-    document.getElementById('add-truck').onclick = () => addToken('TRUCK', 'Снабжение');
-    document.getElementById('add-fleet').onclick = () => addToken('FLEET', 'Флот');
-    document.getElementById('add-train').onclick = () => addToken('TRAIN', 'Поезд');
+    document.getElementById('add-inf').onclick = () => addToken('🏃');
+    document.getElementById('add-tank').onclick = () => addToken('🚜');
+    document.getElementById('add-air').onclick = () => addToken('✈️');
+    document.getElementById('add-art').onclick = () => addToken('💣');
+    document.getElementById('add-pto').onclick = () => addToken('⚡');
+    document.getElementById('add-zsu').onclick = () => addToken('💥');
+    document.getElementById('add-truck').onclick = () => addToken('🚚');
+    document.getElementById('add-fleet').onclick = () => addToken('🚢');
+    document.getElementById('add-train').onclick = () => addToken('🚂');
 </script>
 </body>
 </html>

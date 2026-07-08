@@ -5,60 +5,48 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Игровая карта</title>
 <style>
-body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; display: flex; gap: 20px; overflow-x: hidden; }
-.sidebar {
-    width: 320px;
-    background: #2d2d2d;
-    padding: 20px;
-    border-radius: 8px;
-    border: 1px solid #444;
-    height: 85vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    transition: transform 0.3s ease;
-    position: relative;
-    flex-shrink: 0;
-}
-.sidebar.hidden { transform: translateX(-340px); }
-#toggle-btn {
-    position: absolute;
-    right: 10px;
-    top: 10px;
-    background: #555;
-    color: white;
-    padding: 10px 15px;
-    cursor: pointer;
-    border: none;
-    border-radius: 4px;
-    z-index: 9999;
-    display: block !important;
-}
-.hex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.main-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; }
-.controls-wrapper { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; justify-content: center; }
-button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-radius: 4px; display: flex; align-items: center; gap: 5px; font-size: 11px; }
-.btn-hex { background: #5d4037; color: white; justify-content: center; width: 100%; }
-.btn-unit { background: #444; color: white; padding: 8px 12px; }
+    body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; display: flex; justify-content: space-between; overflow-x: hidden; }
+    
+    .sidebar {
+        width: 300px;
+        background: #2d2d2d;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #444;
+        height: 85vh;
+        overflow-y: auto;
+        position: relative;
+    }
 
-#map-container { position: relative; width: 1000px; height: 600px; background: #252525; border: 1px solid #444; overflow: hidden; border-radius: 4px; }
-.hex { position: absolute; width: 120px; height: 120px; background-size: cover; cursor: grab; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; display: flex; align-items: center; justify-content: center; }
-.token { position: absolute; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: grab; border: 2px solid white; z-index: 2; background: #333; }
+    .hex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    
+    .main-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; padding: 0 20px; }
+    
+    button { padding: 10px; font-weight: bold; cursor: pointer; border: none; border-radius: 4px; display: flex; align-items: center; gap: 5px; font-size: 12px; }
+    
+    .btn-hex { background: #5d4037; color: white; justify-content: center; width: 100%; }
+    .btn-unit { background: #444; color: white; width: 100%; justify-content: center; }
 
-.delete-btn, .edit-btn, .rotate-btn { border-radius: 50%; width: 26px; height: 26px; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; color: white; padding: 0; position: absolute; top: 50%; left: 50%; z-index: 5; }
-.token .delete-btn { top: -8px; right: -8px; }
-.token .edit-btn { top: 25px; right: -8px; }
-.hex .delete-btn { background: #B51010; display: none; transform: translate(-140%, -50%); }
-.hex .rotate-btn { background: #795548; display: none; transform: translate(40%, -50%); }
-.hex:hover .delete-btn, .hex:hover .rotate-btn { display: flex; }
+    #map-container { position: relative; width: 1000px; height: 600px; background: #252525; border: 1px solid #444; overflow: hidden; border-radius: 4px; margin-top: 20px; }
+    
+    .hex { position: absolute; width: 120px; height: 120px; background-size: cover; cursor: grab; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; display: flex; align-items: center; justify-content: center; }
+    .token { position: absolute; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: grab; border: 2px solid white; z-index: 2; background: #333; }
 
-#card-popup { display: none; position: fixed; background: #e6c2b8; border: 2px solid #000; padding: 15px; z-index: 10000; border-radius: 2px; color: black; width: 200px; text-align: left; box-shadow: 5px 5px 10px rgba(0,0,0,0.5); }
-#popup-textarea { width: 100%; height: 100px; background: transparent; border: 1px solid #000; resize: none; margin-top: 5px; }
-#save-btn { width: 100%; margin-top: 5px; padding: 5px; background: #4CAF50; color: white; border: none; cursor: pointer; font-weight: bold; }
+    .delete-btn, .edit-btn, .rotate-btn { border-radius: 50%; width: 26px; height: 26px; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; color: white; padding: 0; position: absolute; top: 50%; left: 50%; z-index: 5; }
+    .token .delete-btn { top: -8px; right: -8px; }
+    .token .edit-btn { top: 25px; right: -8px; }
+    .hex .delete-btn { background: #B51010; display: none; transform: translate(-140%, -50%); }
+    .hex .rotate-btn { background: #795548; display: none; transform: translate(40%, -50%); }
+    .hex:hover .delete-btn, .hex:hover .rotate-btn { display: flex; }
+
+    #card-popup, #rotation-popup { display: none; position: fixed; background: #333; border: 1px solid #fff; padding: 15px; z-index: 10000; border-radius: 5px; color: white; }
+    #popup-textarea { width: 100%; height: 100px; background: #222; color: white; border: 1px solid #555; resize: none; margin-top: 5px; }
+    #save-btn, #apply-rotation { width: 100%; margin-top: 5px; padding: 5px; background: #4CAF50; border: none; cursor: pointer; color: white; font-weight: bold; }
 </style>
 </head>
 <body>
-<div class="sidebar" id="sidebar">
-    <button id="toggle-btn">☰</button>
+
+<div class="sidebar" id="sidebar-left">
     <h2>Гексы</h2>
     <div class="hex-grid">
         <button class="btn-hex" id="add-town">🏰 Город</button>
@@ -78,35 +66,41 @@ button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-
         <button class="btn-hex" id="add-road">🛣️ Дорога</button>
     </div>
 </div>
+
 <div class="main-content">
     <h1>Система управления картой</h1>
-    <div class="controls-wrapper">
+    <div id="map-container"></div>
+</div>
+
+<div class="sidebar" id="sidebar-right">
+    <h2>Фишки</h2>
+    <div class="hex-grid">
         <button class="btn-unit" id="add-inf">🏃 Пехота</button>
-        <button class="btn-unit" id="add-tank">🚜 Техника</button>
+        <button class="btn-unit" id="add-tank">🚜 Танк</button>
         <button class="btn-unit" id="add-air">✈️ Авиация</button>
-        <button class="btn-unit" id="add-art">💣 Арт</button>
+        <button class="btn-unit" id="add-art">💣 Артилерия</button>
         <button class="btn-unit" id="add-pto">⚡ ПТО</button>
         <button class="btn-unit" id="add-zsu">💥 ЗСУ</button>
-        <button class="btn-unit" id="add-truck">🚚 Снаб</button>
+        <button class="btn-unit" id="add-truck">🚚 Снабжение</button>
         <button class="btn-unit" id="add-fleet">🚢 Флот</button>
         <button class="btn-unit" id="add-train">🚂 Поезд</button>
     </div>
-    <div id="map-container"></div>
 </div>
+
 <div id="card-popup">
-    <div style="font-weight: bold; border-bottom: 1px solid #000; margin-bottom: 5px;">КАРТОЧКА</div>
+    <div style="font-weight: bold; margin-bottom: 5px;">КАРТОЧКА</div>
     <textarea id="popup-textarea"></textarea>
     <button id="save-btn">💾 Сохранить</button>
 </div>
-<div id="rotation-popup" style="display: none; position: fixed; background: #333; border: 1px solid #fff; padding: 10px; z-index: 10000; border-radius: 5px;">
+<div id="rotation-popup">
     <input type="number" id="rotation-input" placeholder="Градусы" style="width: 70px;">
     <button id="apply-rotation">Применить</button>
 </div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    document.getElementById('toggle-btn').onclick = () => { document.getElementById('sidebar').classList.toggle('hidden'); };
     const firebaseConfig = {
         apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
         authDomain: "rp-map-218d5.firebaseapp.com",
@@ -116,6 +110,7 @@ button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-
         messagingSenderId: "786305486724",
         appId: "1:786305486724:web:fbc318ab0864fa821897d1"
     };
+    
     const db = getDatabase(initializeApp(firebaseConfig));
     const mapContainer = document.getElementById('map-container');
     const cardPopup = document.getElementById('card-popup');
@@ -127,8 +122,8 @@ button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-
 
     let activeTokenId = null;
     let hexToRotateId = null;
-    let activeTokenData = {};
-    saveBtn.onclick = () => { if (activeTokenId) { update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value }); cardPopup.style.display = 'none'; activeTokenId = null; } };
+
+    saveBtn.onclick = () => { if (activeTokenId) { update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value }); cardPopup.style.display = 'none'; } };
     applyRotationBtn.onclick = () => { if (hexToRotateId) { update(ref(db, 'hexes/' + hexToRotateId), { rotation: parseInt(rotationInput.value) || 0 }); rotationPopup.style.display = 'none'; } };
 
     const hexImages = {
@@ -155,7 +150,7 @@ button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-
 
         if (type === 'token') {
             const edit = document.createElement('button'); edit.className = 'edit-btn'; edit.innerText = '✎';
-            edit.onclick = (e) => { e.stopPropagation(); activeTokenId = id; cardPopup.style.display = 'block'; cardPopup.style.left = (e.clientX + 15) + 'px'; cardPopup.style.top = (e.clientY + 15) + 'px'; popupTextarea.value = activeTokenData[id]?.info || data.info || ""; };
+            edit.onclick = (e) => { e.stopPropagation(); activeTokenId = id; cardPopup.style.display = 'block'; cardPopup.style.left = (e.clientX + 10) + 'px'; cardPopup.style.top = (e.clientY + 10) + 'px'; popupTextarea.value = data.info || ""; };
             el.appendChild(edit);
         } else {
             const rot = document.createElement('button'); rot.className = 'rotate-btn'; rot.innerText = '↻';
@@ -179,11 +174,11 @@ button { padding: 8px; font-weight: bold; cursor: pointer; border: none; border-
     }
 
     onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
-    onChildAdded(ref(db, 'tokens'), (s) => { activeTokenData[s.key] = s.val(); renderElement(s.key, s.val(), 'token'); });
-    onChildChanged(ref(db, 'tokens'), (s) => { activeTokenData[s.key] = s.val(); const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; } });
+    onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
+    onChildChanged(ref(db, 'tokens'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; } });
     onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; el.style.transform = `rotate(${s.val().rotation || 0}deg)`; } });
     onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
-    onChildRemoved(ref(db, 'tokens'), (s) => { delete activeTokenData[s.key]; document.getElementById(s.key)?.remove(); });
+    onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());
 
     const addHex = (type) => set(ref(db, 'hexes/' + Date.now()), { type: type, top: 150, left: 150, rotation: 0 });
     const addToken = (type, info) => set(ref(db, 'tokens/' + Date.now()), { type: type, top: 50, left: 50, info: info });

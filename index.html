@@ -77,6 +77,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, onChildAdded, onChildChanged, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    
     const firebaseConfig = {
         apiKey: "AIzaSyDwsFk9zwr-q1dxlVRrjyJNXNz9TJ0_LgA",
         databaseURL: "https://rp-map-218d5-default-rtdb.firebaseio.com",
@@ -89,67 +90,65 @@
     const cardPopup = document.getElementById('card-popup');
     const popupTextarea = document.getElementById('popup-textarea');
     const saveBtn = document.getElementById('save-btn');
-    const rotationPopup = document.getElementById('rotation-popup');
-    const rotationInput = document.getElementById('rotation-input');
-    const applyRotationBtn = document.getElementById('apply-rotation');
+    
     let activeTokenId = null;
-    let hexToRotateId = null;
 
+    // --- ИСПРАВЛЕННАЯ ЛОГИКА СОХРАНЕНИЯ ---
     saveBtn.onclick = () => { 
         if (activeTokenId) { 
             update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value }); 
             cardPopup.style.display = 'none'; 
-            activeTokenId = null;
         } 
     };
-    applyRotationBtn.onclick = () => { if (hexToRotateId) { update(ref(db, 'hexes/' + hexToRotateId), { rotation: parseInt(rotationInput.value) || 0 }); rotationPopup.style.display = 'none'; } };
-
-    const hexImages = {
-        town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png',
-        village: 'assets/Деревня.png', farmland: 'assets/Пашня.png', port: 'assets/Морской Порт.png', sea: 'assets/Море.png',
-        prospekt: 'assets/Проспект.png', vokzal: 'assets/Вокзал.png', railway: 'assets/Железная дорога.png',
-        turn: 'assets/Поворот.png', hill: 'assets/Холм.png', swamp: 'assets/Болото.png', road: 'assets/Дорога.png'
-    };
-    const tokenIcons = { INF: ' 🏃 ', TNK: ' 🚜 ', AIR: ' ✈️ ', ART: ' 💣 ', PTO: ' ⚡ ', ZSU: ' 💥 ', TRUCK: ' 🚚 ', FLEET: ' 🚢 ', TRAIN: ' 🚂 ' };
 
     function renderElement(id, data, type) {
-        const el = document.createElement('div');
-        el.className = type === 'hex' ? 'hex' : 'token';
-        el.id = id;
+        let el = document.getElementById(id);
+        if (!el) {
+            el = document.createElement('div');
+            el.id = id;
+            el.className = type === 'hex' ? 'hex' : 'token';
+            mapContainer.appendChild(el);
+        }
+        
         el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
-        if (type === 'hex') { el.style.backgroundImage = `url('${hexImages[data.type]}')`; el.style.transform = `rotate(${data.rotation || 0}deg)`; }
-        else { el.innerText = tokenIcons[data.type]; }
+        if (type === 'hex') { 
+            el.style.backgroundImage = `url('assets/${data.type}.png')`; 
+        } else { 
+            el.innerText = data.type === 'INF' ? '🏃' : (data.type === 'TNK' ? '🚜' : '✈️'); 
+        }
 
-        const del = document.createElement('button'); del.className = 'delete-btn'; del.innerText = ' ✖ ';
+        // Кнопки (очищаем перед созданием, чтобы не дублировать)
+        el.innerHTML = '';
+        const del = document.createElement('button'); del.className = 'delete-btn'; del.innerText = '✖';
         del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
         el.appendChild(del);
 
         if (type === 'token') {
-            const edit = document.createElement('button'); edit.className = 'edit-btn'; edit.innerText = ' ✎ ';
-            edit.onclick = (e) => { e.stopPropagation(); activeTokenId = id; popupTextarea.value = data.info || ""; cardPopup.style.display = 'block'; cardPopup.style.left = e.clientX + 'px'; cardPopup.style.top = e.clientY + 'px'; };
-            el.appendChild(edit);
-        } else {
-            const rot = document.createElement('button'); rot.className = 'rotate-btn'; rot.innerText = ' ↻ ';
-            rot.onclick = (e) => { e.stopPropagation(); hexToRotateId = id; rotationPopup.style.display = 'block'; rotationPopup.style.left = (e.clientX + 10) + 'px'; rotationPopup.style.top = (e.clientY + 10) + 'px'; };
-            el.appendChild(rot);
-        }
-        el.onmousedown = (e) => {
-            if (e.target.tagName === 'BUTTON') return;
-            let shiftX = e.clientX - el.getBoundingClientRect().left;
-            let shiftY = e.clientY - el.getBoundingClientRect().top;
-            document.onmousemove = (e) => {
-                let x = e.clientX - mapContainer.getBoundingClientRect().left - shiftX;
-                let y = e.clientY - mapContainer.getBoundingClientRect().top - shiftY;
-                el.style.left = x + 'px'; el.style.top = y + 'px';
-                update(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id), { top: y, left: x });
+            const edit = document.createElement('button'); edit.className = 'edit-btn'; edit.innerText = '✎';
+            edit.onclick = (e) => { 
+                e.stopPropagation(); activeTokenId = id; 
+                popupTextarea.value = data.info || ""; 
+                cardPopup.style.display = 'block'; 
+                cardPopup.style.left = (e.clientX + 10) + 'px'; cardPopup.style.top = (e.clientY + 10) + 'px';
             };
-            document.onmouseup = () => { document.onmousemove = null; };
-        };
-        mapContainer.appendChild(el);
+            el.appendChild(edit);
+        }
     }
 
+    // --- СИНХРОНИЗАЦИЯ РЕАЛЬНОГО ВРЕМЕНИ ---
     onChildAdded(ref(db, 'hexes'), (s) => renderElement(s.key, s.val(), 'hex'));
     onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
+    
+    onChildChanged(ref(db, 'tokens'), (s) => {
+        renderElement(s.key, s.val(), 'token');
+        // Если открыт попап для этого токена, обновляем текст в нем
+        if (activeTokenId === s.key) {
+            popupTextarea.value = s.val().info || "";
+        }
+    });
+
+    onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
+    onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());
     onChildChanged(ref(db, 'tokens'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; } });
     onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; el.style.transform = `rotate(${s.val().rotation || 0}deg)`; } });
     onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());

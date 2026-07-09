@@ -97,6 +97,8 @@ const applyRotationBtn = document.getElementById('apply-rotation');
 
 let activeTokenId = null;
 let hexToRotateId = null;
+// Хранилище данных для мгновенного доступа
+let tokenDataMap = {}; 
 
 saveBtn.onclick = () => {
     if (activeTokenId) {
@@ -124,6 +126,7 @@ function renderElement(id, data, type) {
     const el = document.createElement('div');
     el.className = type === 'hex' ? 'hex' : 'token';
     el.id = id;
+    tokenDataMap[id] = data; // Сохраняем актуальные данные
     el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
     if (type === 'hex') { el.style.backgroundImage = `url('${hexImages[data.type]}')`; el.style.transform = `rotate(${data.rotation || 0}deg)`; }
     else { el.innerText = tokenIcons[data.type]; }
@@ -137,7 +140,7 @@ function renderElement(id, data, type) {
         edit.className = 'edit-btn'; edit.innerText = ' ✎ ';
         edit.onclick = (e) => {
             e.stopPropagation(); activeTokenId = id;
-            popupTextarea.value = data.info || "";
+            popupTextarea.value = tokenDataMap[id].info || ""; // Берем актуальное значение
             cardPopup.style.display = 'block';
             cardPopup.style.left = e.clientX + 'px'; cardPopup.style.top = e.clientY + 'px';
         };
@@ -168,16 +171,21 @@ onChildAdded(ref(db, 'tokens'), (s) => renderElement(s.key, s.val(), 'token'));
 onChildChanged(ref(db, 'tokens'), (s) => { 
     const el = document.getElementById(s.key); 
     if(el) { 
+        tokenDataMap[s.key] = s.val(); // Обновляем данные в локальном хранилище
         el.style.top = s.val().top + 'px'; 
         el.style.left = s.val().left + 'px'; 
-        // Добавлено: обновление данных для редактирования без перезагрузки
-        // Так как элемент - это кнопка, мы просто сохраняем новые данные в объекте, 
-        // если нужно отображение текста, добавьте logic сюда (например, title или всплывающая подсказка)
+        // Если карточка открыта для этой фишки, обновляем текст в textarea на лету
+        if (activeTokenId === s.key && cardPopup.style.display === 'block') {
+            popupTextarea.value = s.val().info || "";
+        }
     } 
 });
 onChildChanged(ref(db, 'hexes'), (s) => { const el = document.getElementById(s.key); if(el) { el.style.top = s.val().top + 'px'; el.style.left = s.val().left + 'px'; el.style.transform = `rotate(${s.val().rotation || 0}deg)`; } });
 onChildRemoved(ref(db, 'hexes'), (s) => document.getElementById(s.key)?.remove());
-onChildRemoved(ref(db, 'tokens'), (s) => document.getElementById(s.key)?.remove());
+onChildRemoved(ref(db, 'tokens'), (s) => {
+    document.getElementById(s.key)?.remove();
+    delete tokenDataMap[s.key];
+});
 
 const addHex = (type) => set(ref(db, 'hexes/' + Date.now()), { type: type, top: 150, left: 150, rotation: 0 });
 const addToken = (type, info) => set(ref(db, 'tokens/' + Date.now()), { type: type, top: 50, left: 50, info: info });

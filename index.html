@@ -112,17 +112,15 @@ const saveBtn = document.getElementById('save-btn');
     };
     const tokenIcons = { INF: '🏃', TNK: '🚜', AIR: '✈️', ART: '💣', PTO: '⚡', ZSU: '💥', TRUCK: '🚚', FLEET: '🚢', TRAIN: '🚂' };
 
-    function renderElement(id, data, type) {
-        const el = document.createElement('div');
-        el.className = type === 'hex' ? 'hex' : 'token';
-        el.id = id;
-        el.style.top = data.top + 'px'; el.style.left = data.left + 'px';
-        if (type === 'hex') { el.style.backgroundImage = `url('${hexImages[data.type]}')`; el.style.transform = `rotate(${data.rotation || 0}deg)`; }
-        else { el.innerText = tokenIcons[data.type]; }
-
-        const del = document.createElement('button'); del.className = 'delete-btn'; del.innerText = '✖';
-        del.onclick = (e) => { e.stopPropagation(); remove(ref(db, (type === 'hex' ? 'hexes/' : 'tokens/') + id)); };
-        el.appendChild(del);
+function renderElement(id, data, type) {
+        let el = document.getElementById(id);
+        if (!el) {
+            el = document.createElement('div');
+            el.id = id;
+            el.className = type === 'hex' ? 'hex' : 'token';
+            mapContainer.appendChild(el);
+        }        
+el.appendChild(del);
 
         if (type === 'token') {
          const edit = document.createElement('button');

@@ -45,6 +45,8 @@ button { padding: 10px; font-weight: bold; cursor: pointer; border: none; border
         <button class="btn-hex" id="add-hill"> ⛰️  Холм</button>
         <button class="btn-hex" id="add-swamp"> 💧  Болото</button>
         <button class="btn-hex" id="add-road"> 🛣️  Дорога</button>
+        <button class="btn-hex" id="add-turn-railway"> 🛤️↪️ Пов. Ж/Д</button>
+        <button class="btn-hex" id="add-turn-prospekt"> 🏙️↪️ Пов. Проспект</button>
     </div>
 </div>
 <div class="main-content">
@@ -115,8 +117,8 @@ applyRotationBtn.onclick = () => {
 };
 
 const hexImages = {
-    town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png',
-    village: 'assets/Деревня.png', farmland: 'assets/Пашня.png', port: 'assets/Морской Порт.png', sea: 'assets/Море.png',
+    town: 'assets/Город.png', field: 'assets/Равнина.png', forest: 'assets/Лес.png', bushes: 'assets/Кусты.png', turn_railway: 'assets/Поворот ЖД.png',
+    village: 'assets/Деревня.png', farmland: 'assets/Пашня.png', port: 'assets/Морской Порт.png', sea: 'assets/Море.png', turn_prospekt: 'assets/Поворот Проспект.png',
     prospekt: 'assets/Проспект.png', vokzal: 'assets/Вокзал.png', railway: 'assets/Железная дорога.png',
     turn: 'assets/Поворот.png', hill: 'assets/Холм.png', swamp: 'assets/Болото.png', road: 'assets/Дорога.png'
 };
@@ -205,6 +207,8 @@ document.getElementById('add-turn').onclick = () => addHex('turn');
 document.getElementById('add-hill').onclick = () => addHex('hill');
 document.getElementById('add-swamp').onclick = () => addHex('swamp');
 document.getElementById('add-road').onclick = () => addHex('road');
+document.getElementById('add-turn-railway').onclick = () => addHex('turn_railway');
+document.getElementById('add-turn-prospekt').onclick = () => addHex('turn_prospekt');
 document.getElementById('add-inf').onclick = () => addToken('INF', 'Пехота');
 document.getElementById('add-tank').onclick = () => addToken('TNK', 'Техника');
 document.getElementById('add-air').onclick = () => addToken('AIR', 'Авиация');

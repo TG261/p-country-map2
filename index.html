@@ -87,16 +87,21 @@
     const db = getDatabase(app, "https://rp-map-218d5-default-rtdb.firebaseio.com");
     
     const mapContainer = document.getElementById('map-container');
-    const cardPopup = document.getElementById('card-popup');
-    const popupTextarea = document.getElementById('popup-textarea');
-    const saveBtn = document.getElementById('save-btn');
+   const cardPopup = document.getElementById('card-popup');
+const popupTextarea = document.getElementById('popup-textarea');
+const saveBtn = document.getElementById('save-btn');
     const rotationPopup = document.getElementById('rotation-popup');
     const rotationInput = document.getElementById('rotation-input');
     const applyRotationBtn = document.getElementById('apply-rotation');
     let activeTokenId = null;
     let hexToRotateId = null;
 
-    saveBtn.onclick = () => { if (activeTokenId) { update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value }); cardPopup.style.display = 'none'; } };
+   saveBtn.onclick = () => {
+    if (activeTokenId) {
+        update(ref(db, 'tokens/' + activeTokenId), { info: popupTextarea.value });
+        cardPopup.style.display = 'none';
+    }
+};
     applyRotationBtn.onclick = () => { if (hexToRotateId) { update(ref(db, 'hexes/' + hexToRotateId), { rotation: parseInt(rotationInput.value) || 0 }); rotationPopup.style.display = 'none'; } };
 
     const hexImages = {
@@ -120,9 +125,15 @@
         el.appendChild(del);
 
         if (type === 'token') {
-            const edit = document.createElement('button'); edit.className = 'edit-btn'; edit.innerText = '✎';
-            edit.onclick = (e) => { e.stopPropagation(); activeTokenId = id; cardPopup.style.display = 'block'; cardPopup.style.left = (e.clientX + 10) + 'px'; cardPopup.style.top = (e.clientY + 10) + 'px'; popupTextarea.value = data.info || ""; };
-            el.appendChild(edit);
+         const edit = document.createElement('button');
+edit.className = 'edit-btn'; edit.innerText = '✎';
+edit.onclick = (e) => { 
+    e.stopPropagation(); activeTokenId = id; 
+    popupTextarea.value = data.info || "";
+    cardPopup.style.display = 'block';
+    cardPopup.style.left = e.clientX + 'px'; cardPopup.style.top = e.clientY + 'px';
+};
+el.appendChild(edit);
         } else {
             const rot = document.createElement('button'); rot.className = 'rotate-btn'; rot.innerText = '↻';
             rot.onclick = (e) => { e.stopPropagation(); hexToRotateId = id; rotationPopup.style.display = 'block'; rotationPopup.style.left = (e.clientX + 10) + 'px'; rotationPopup.style.top = (e.clientY + 10) + 'px'; };
